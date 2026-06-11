@@ -22,7 +22,7 @@ export default function SelectLocation() {
   const apartments = locations.filter(l => l.type === 'APARTMENT')
   const commonAreas = locations.filter(l => l.type === 'COMMON_AREA')
   const projectLevel = locations.filter(l => l.type === 'PROJECT_LEVEL')
-  const go = (locationId) => navigate(`/project/${projectId}/floor/${floorId}/location/${locationId}/trades`)
+  const go = (locationId) => navigate(`/p/${projectId}/f/${floorId}/l/${locationId}`)
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -30,7 +30,7 @@ export default function SelectLocation() {
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/project/${projectId}/floors`} className="hover:text-orange-500 transition-colors font-medium">{floor?.label || '…'}</Link>
+        <Link to={`/p/${projectId}`} className="hover:text-orange-500 transition-colors font-medium">{floor?.label || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600 dark:text-gray-300 font-medium">Select Location</span>
       </nav>

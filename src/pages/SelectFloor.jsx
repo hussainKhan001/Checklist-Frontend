@@ -40,7 +40,7 @@ export default function SelectFloor() {
         {regularFloors.map(f => (
           <button
             key={f._id}
-            onClick={() => navigate(`/project/${projectId}/floor/${f._id}/locations`)}
+            onClick={() => navigate(`/p/${projectId}/f/${f._id}`)}
             className="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-orange-400 hover:shadow-md hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-all aspect-square"
           >
             <div className="text-lg font-bold text-orange-500 group-hover:scale-110 transition-transform">{f.code}</div>
@@ -57,7 +57,7 @@ export default function SelectFloor() {
             {projectLevelAreas.map(f => (
               <div
                 key={f._id}
-                onClick={() => navigate(`/project/${projectId}/floor/${f._id}/locations`)}
+                onClick={() => navigate(`/p/${projectId}/f/${f._id}`)}
                 className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-orange-400 hover:shadow-md transition-all flex items-center justify-between"
               >
                 <div>

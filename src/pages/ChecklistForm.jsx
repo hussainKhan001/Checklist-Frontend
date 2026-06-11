@@ -140,11 +140,11 @@ export default function ChecklistForm() {
           {project?.name || '…'}
         </Link>
         <ChevronRight className="w-3 h-3 flex-shrink-0" />
-        <Link to={`/project/${projectId}/floors`} className="hover:text-orange-500 transition-colors font-medium">
+        <Link to={`/p/${projectId}`} className="hover:text-orange-500 transition-colors font-medium">
           {floor?.label || '…'}
         </Link>
         <ChevronRight className="w-3 h-3 flex-shrink-0" />
-        <Link to={`/project/${projectId}/floor/${floorId}/locations`} className="hover:text-orange-500 transition-colors font-medium">
+        <Link to={`/p/${projectId}/f/${floorId}`} className="hover:text-orange-500 transition-colors font-medium">
           {locationName}
         </Link>
         <ChevronRight className="w-3 h-3 flex-shrink-0" />
@@ -154,7 +154,7 @@ export default function ChecklistForm() {
       {/* Back + title */}
       <div>
         <button
-          onClick={() => navigate(`/project/${projectId}/floor/${floorId}/location/${locationId}/trades`)}
+          onClick={() => navigate(`/p/${projectId}/f/${floorId}/l/${locationId}`)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-orange-500 transition-colors mb-2"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Change trade

@@ -58,7 +58,7 @@ export default function SelectProject() {
             {list.map(p => (
               <div
                 key={p._id}
-                onClick={() => navigate(`/project/${p._id}/floors`)}
+                onClick={() => navigate(`/p/${p._id}`)}
                 className="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">

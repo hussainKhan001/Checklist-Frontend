@@ -36,9 +36,9 @@ export default function SelectTrade() {
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/project/${projectId}/floors`} className="hover:text-orange-500 transition-colors font-medium">{floor?.label || '…'}</Link>
+        <Link to={`/p/${projectId}`} className="hover:text-orange-500 transition-colors font-medium">{floor?.label || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/project/${projectId}/floor/${floorId}/locations`} className="hover:text-orange-500 transition-colors font-medium">{location?.name || '…'}</Link>
+        <Link to={`/p/${projectId}/f/${floorId}`} className="hover:text-orange-500 transition-colors font-medium">{location?.name || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600 dark:text-gray-300 font-medium">Select Trade</span>
       </nav>
@@ -56,7 +56,7 @@ export default function SelectTrade() {
           <div
             key={trade._id}
             onClick={() => {
-              if (!trade.isPending) navigate(`/project/${projectId}/floor/${floorId}/location/${locationId}/trade/${trade._id}/checklist`)
+              if (!trade.isPending) navigate(`/c/${projectId}/${floorId}/${locationId}/${trade._id}`)
             }}
             className={`group relative bg-white dark:bg-gray-800 border rounded-xl p-5 transition-all
               ${trade.isPending

@@ -65,10 +65,10 @@ export default function App() {
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<SelectProject />} />
-                <Route path="/project/:projectId/floors" element={<SelectFloor />} />
-                <Route path="/project/:projectId/floor/:floorId/locations" element={<SelectLocation />} />
-                <Route path="/project/:projectId/floor/:floorId/location/:locationId/trades" element={<SelectTrade />} />
-                <Route path="/project/:projectId/floor/:floorId/location/:locationId/trade/:tradeId/checklist" element={<ChecklistForm />} />
+                <Route path="/p/:projectId" element={<SelectFloor />} />
+                <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
+                <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
+                <Route path="/c/:projectId/:floorId/:locationId/:tradeId" element={<ChecklistForm />} />
               </Routes>
             </main>
             <Footer />
