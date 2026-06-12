@@ -13,7 +13,8 @@ import toast from 'react-hot-toast'
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
 export default function ChecklistForm() {
-  const { projectId, floorId, locationId, tradeId } = useParams()
+  const { tradeId } = useParams()
+  const { projectId, floorId, locationId } = JSON.parse(sessionStorage.getItem('checklistCtx') || '{}')
   const navigate = useNavigate()
 
   const [project, setProject] = useState(null)

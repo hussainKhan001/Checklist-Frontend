@@ -56,7 +56,10 @@ export default function SelectTrade() {
           <div
             key={trade._id}
             onClick={() => {
-              if (!trade.isPending) navigate(`/c/${projectId}/${floorId}/${locationId}/${trade._id}`)
+              if (!trade.isPending) {
+                sessionStorage.setItem('checklistCtx', JSON.stringify({ projectId, floorId, locationId }))
+                navigate(`/c/${trade._id}`)
+              }
             }}
             className={`group relative bg-white dark:bg-gray-800 border rounded-xl p-5 transition-all
               ${trade.isPending

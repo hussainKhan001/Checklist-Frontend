@@ -68,7 +68,7 @@ export default function App() {
                 <Route path="/p/:projectId" element={<SelectFloor />} />
                 <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
                 <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
-                <Route path="/c/:projectId/:floorId/:locationId/:tradeId" element={<ChecklistForm />} />
+                <Route path="/c/:tradeId" element={<ChecklistForm />} />
               </Routes>
             </main>
             <Footer />
