@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
-import { Plus, Pencil, Trash2, MapPin } from 'lucide-react'
+import { Plus, Pencil, Trash2, MapPin, Layers } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import {
   adminGetProjects, adminGetFloors, adminCreateFloor, adminUpdateFloor, adminDeleteFloor,
   adminGetLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation,
+  adminGetElements, adminCreateElement, adminUpdateElement, adminDeleteElement,
 } from '../../api'
 
 const BLANK_FLOOR = { code: '', label: '', order: 0, isProjectLevel: false }
 const BLANK_LOC = { name: '', type: 'APARTMENT' }
+const BLANK_ELEM = { name: '', type: 'WALL', order: 0 }
+
+const ELEM_TYPES = ['WALL', 'COLUMN', 'BEAM', 'SLAB', 'DOOR_WINDOW_FRAME', 'STAIRCASE', 'OTHER']
+const ELEM_LABEL = { WALL: 'Wall', COLUMN: 'Column', BEAM: 'Beam', SLAB: 'Slab', DOOR_WINDOW_FRAME: 'Door/Window Frame', STAIRCASE: 'Staircase', OTHER: 'Other' }
 
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
@@ -32,6 +37,11 @@ export default function Floors() {
   const [locations, setLocations] = useState([])
   const [locModal, setLocModal] = useState(null)
   const [locForm, setLocForm] = useState(BLANK_LOC)
+
+  const [elemLoc, setElemLoc] = useState(null)
+  const [elements, setElements] = useState([])
+  const [elemModal, setElemModal] = useState(null)
+  const [elemForm, setElemForm] = useState(BLANK_ELEM)
 
   useEffect(() => { adminGetProjects().then(r => setProjects(r.data)) }, [])
   useEffect(() => {
@@ -85,6 +95,28 @@ export default function Floors() {
     await adminDeleteLocation(id)
     setLocations(prev => prev.filter(l => l._id !== id))
     toast.success('Location deleted')
+  }
+
+  const openElements = (loc) => {
+    setElemLoc(loc)
+    adminGetElements(loc._id).then(r => setElements(r.data))
+  }
+
+  const saveElement = async () => {
+    if (!elemForm.name) return
+    if (elemModal === 'add') await adminCreateElement({ ...elemForm, locationId: elemLoc._id, floorId: locFloor._id, projectId: selProject })
+    else await adminUpdateElement(elemModal, elemForm)
+    setElemModal(null)
+    adminGetElements(elemLoc._id).then(r => setElements(r.data))
+    toast.success(elemModal === 'add' ? 'Element added' : 'Element updated')
+  }
+
+  const delElement = async (id) => {
+    const ok = await confirm('Delete this element?', 'This cannot be undone.')
+    if (!ok) return
+    await adminDeleteElement(id)
+    setElements(prev => prev.filter(e => e._id !== id))
+    toast.success('Element deleted')
   }
 
   const typeLabel = (t) => ({ APARTMENT: 'Apartment', COMMON_AREA: 'Common Area', PROJECT_LEVEL: 'Project Level' }[t] || t)
@@ -232,6 +264,13 @@ export default function Floors() {
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <button
+                              onClick={() => openElements(l)}
+                              title="Structural Elements"
+                              className={`p-1.5 rounded-lg transition-colors ${elemLoc?._id === l._id ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-500' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500'}`}
+                            >
+                              <Layers className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => { setLocForm({ name: l.name, type: l.type }); setLocModal(l._id) }}
                               className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"
                             >
@@ -258,6 +297,72 @@ export default function Floors() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Elements panel */}
+        {elemLoc && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/70 dark:bg-gray-800/60">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  Structural Elements — <span className="text-blue-500">{elemLoc.name}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => { setElemForm(BLANK_ELEM); setElemModal('add') }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold shadow-sm transition"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add
+              </button>
+            </div>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {elements.map(el => (
+                  <tr key={el._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{el.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                        {ELEM_LABEL[el.type] || el.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400">{el.order}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => { setElemForm({ name: el.name, type: el.type, order: el.order }); setElemModal(el._id) }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => delElement(el._id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {elements.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                      No structural elements. Add walls, columns, beams, etc. above.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -367,6 +472,57 @@ export default function Floors() {
               <button
                 onClick={saveLocation}
                 className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold shadow-sm transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {/* Element modal */}
+      {elemModal && (
+        <Modal title={elemModal === 'add' ? 'Add Structural Element' : 'Edit Structural Element'} onClose={() => setElemModal(null)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Name *</label>
+              <input
+                className={inputCls}
+                value={elemForm.name}
+                onChange={e => setElemForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. W-01, Col-A1, B-North"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Type</label>
+                <select
+                  className={inputCls}
+                  value={elemForm.type}
+                  onChange={e => setElemForm(f => ({ ...f, type: e.target.value }))}
+                >
+                  {ELEM_TYPES.map(t => <option key={t} value={t}>{ELEM_LABEL[t]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Order</label>
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={elemForm.order}
+                  onChange={e => setElemForm(f => ({ ...f, order: +e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setElemModal(null)}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveElement}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold shadow-sm transition"
               >
                 Save
               </button>

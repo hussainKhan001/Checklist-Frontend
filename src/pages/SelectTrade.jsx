@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getTrades, getCheckPoints, getProject, getFloor, getLocations } from '../api'
+import { getTrades, getCheckPoints, getProject, getFloor, getLocations, getElements } from '../api'
 import { ChevronRight, AlertTriangle, Clock } from 'lucide-react'
 
 export default function SelectTrade() {
   const { projectId, floorId, locationId } = useParams()
+  const elementId = sessionStorage.getItem('elementCtx') || null
   const navigate = useNavigate()
   const [project, setProject] = useState(null)
   const [floor, setFloor] = useState(null)
   const [location, setLocation] = useState(null)
+  const [element, setElement] = useState(null)
   const [trades, setTrades] = useState([])
   const [cpCounts, setCpCounts] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getProject(projectId), getFloor(floorId), getLocations(floorId), getTrades()])
-      .then(async ([pRes, fRes, lRes, tRes]) => {
+    Promise.all([getProject(projectId), getFloor(floorId), getLocations(floorId), getTrades(), getElements(locationId)])
+      .then(async ([pRes, fRes, lRes, tRes, eRes]) => {
         setProject(pRes.data); setFloor(fRes.data)
         setLocation(lRes.data.find(l => l._id === locationId) || null)
+        if (elementId) setElement(eRes.data.find(e => e._id === elementId) || null)
         setTrades(tRes.data)
         const counts = {}
         await Promise.all(tRes.data.filter(t => !t.isPending).map(async t => {
@@ -39,6 +42,12 @@ export default function SelectTrade() {
         <Link to={`/p/${projectId}`} className="hover:text-orange-500 transition-colors font-medium">{floor?.label || '…'}</Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <Link to={`/p/${projectId}/f/${floorId}`} className="hover:text-orange-500 transition-colors font-medium">{location?.name || '…'}</Link>
+        {element && (
+          <>
+            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-gray-500 dark:text-gray-400 font-medium">{element.name}</span>
+          </>
+        )}
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-gray-600 dark:text-gray-300 font-medium">Select Trade</span>
       </nav>
@@ -57,7 +66,10 @@ export default function SelectTrade() {
             key={trade._id}
             onClick={() => {
               if (!trade.isPending) {
-                sessionStorage.setItem('checklistCtx', JSON.stringify({ projectId, floorId, locationId }))
+                sessionStorage.setItem('checklistCtx', JSON.stringify({
+                  projectId, floorId, locationId,
+                  elementId: elementId || null,
+                }))
                 navigate(`/c/${trade._id}`)
               }
             }}

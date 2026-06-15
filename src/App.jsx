@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import SelectProject from './pages/SelectProject'
 import SelectFloor from './pages/SelectFloor'
 import SelectLocation from './pages/SelectLocation'
+import SelectElement from './pages/SelectElement'
 import SelectTrade from './pages/SelectTrade'
 import ChecklistForm from './pages/ChecklistForm'
 import Dashboard from './pages/admin/Dashboard'
@@ -67,7 +68,8 @@ export default function App() {
                 <Route path="/" element={<SelectProject />} />
                 <Route path="/p/:projectId" element={<SelectFloor />} />
                 <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
-                <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
+                <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectElement />} />
+                <Route path="/p/:projectId/f/:floorId/l/:locationId/trade" element={<SelectTrade />} />
                 <Route path="/c/:tradeId" element={<ChecklistForm />} />
               </Routes>
             </main>
