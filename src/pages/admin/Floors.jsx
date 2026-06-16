@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
-import { Plus, Pencil, Trash2, MapPin, Layers } from 'lucide-react'
+import { Plus, Pencil, Trash2, MapPin, Layers, CheckSquare } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import {
@@ -338,6 +338,13 @@ export default function Floors() {
                     <td className="px-4 py-3 text-gray-400">{el.order}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => navigate(`/admin/elements/${el._id}/trades`)}
+                          title="Manage Trades & Checklists"
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" /> Trades
+                        </button>
                         <button
                           onClick={() => { setElemForm({ name: el.name, type: el.type, order: el.order }); setElemModal(el._id) }}
                           className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"

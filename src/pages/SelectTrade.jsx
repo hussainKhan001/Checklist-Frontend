@@ -16,14 +16,20 @@ export default function SelectTrade() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getProject(projectId), getFloor(floorId), getLocations(floorId), getTrades(), getElements(locationId)])
-      .then(async ([pRes, fRes, lRes, tRes, eRes]) => {
+    Promise.all([getProject(projectId), getFloor(floorId), getLocations(floorId), getElements(locationId)])
+      .then(async ([pRes, fRes, lRes, eRes]) => {
         setProject(pRes.data); setFloor(fRes.data)
         setLocation(lRes.data.find(l => l._id === locationId) || null)
         if (elementId) setElement(eRes.data.find(e => e._id === elementId) || null)
-        setTrades(tRes.data)
+
+        // If element selected: load element-specific trades; fall back to global if none
+        let tradesRes = elementId ? await getTrades(elementId) : await getTrades()
+        if (elementId && tradesRes.data.length === 0) tradesRes = await getTrades()
+        const tradeList = tradesRes.data
+        setTrades(tradeList)
+
         const counts = {}
-        await Promise.all(tRes.data.filter(t => !t.isPending).map(async t => {
+        await Promise.all(tradeList.filter(t => !t.isPending).map(async t => {
           const res = await getCheckPoints(t._id); counts[t._id] = res.data.length
         }))
         setCpCounts(counts)
