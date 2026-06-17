@@ -54,6 +54,9 @@ export default function InspectionDetail() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{ins.tradeId?.name}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {ins.projectId?.name} · {ins.floorId?.label} · {ins.locationId?.name}
+              {ins.elementId && (
+                <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">· {ins.elementId.name}</span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -113,7 +116,14 @@ export default function InspectionDetail() {
                     {cp?.order || i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-gray-900 dark:text-white">{cp?.title || '—'}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-gray-900 dark:text-white">{cp?.title || '—'}</span>
+                      {ins.elementId && (
+                        <span className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                          {ins.elementId.name}
+                        </span>
+                      )}
+                    </div>
                     {cp?.standard && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span className="font-medium">Standard:</span> {cp.standard}</div>}
                     {r.remarks && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span className="font-medium">Remarks:</span> {r.remarks}</div>}
                     {r.photos?.length > 0 && (
