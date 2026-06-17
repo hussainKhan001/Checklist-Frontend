@@ -51,8 +51,8 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-          {STAT_DEFS.map(def => (
-            <StatCard key={def.key} {...def} value={stats?.[def.key]} />
+          {STAT_DEFS.map(({ key, ...def }) => (
+            <StatCard key={key} {...def} value={stats?.[key]} />
           ))}
         </div>
 

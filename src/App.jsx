@@ -59,8 +59,6 @@ export default function App() {
         <Route path="/admin/projects/:projectId/floors" element={<ProtectedRoute adminOnly><Floors /></ProtectedRoute>} />
         <Route path="/admin/trades" element={<ProtectedRoute adminOnly><Trades /></ProtectedRoute>} />
         <Route path="/admin/trades/:tradeId/checkpoints" element={<ProtectedRoute adminOnly><CheckPoints /></ProtectedRoute>} />
-
-        <Route path="/admin/trades/:tradeId/elements/:elementId/checkpoints" element={<ProtectedRoute adminOnly><CheckPoints /></ProtectedRoute>} />
         <Route path="/admin/elements/:elementId/trades" element={<ProtectedRoute adminOnly><ElementTrades /></ProtectedRoute>} />
         <Route path="/admin/trades/:tradeId/elements" element={<ProtectedRoute adminOnly><TradeElements /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
