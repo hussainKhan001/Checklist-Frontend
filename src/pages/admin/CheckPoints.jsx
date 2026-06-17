@@ -5,14 +5,14 @@ import Modal from '../../components/Modal'
 import { Plus, Pencil, Trash2, ArrowLeft, Camera, CheckSquare, Eye, EyeOff } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
-import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint } from '../../api'
+import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint, adminGetElement } from '../../api'
 
 const BLANK = { title: '', order: 1, standard: '', howToCheck: '', photoRequired: false }
 
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
 export default function CheckPoints() {
-  const { tradeId: paramTradeId } = useParams()
+  const { tradeId: paramTradeId, elementId: paramElementId } = useParams()
   const navigate = useNavigate()
   const confirm = useConfirm()
   const [trades, setTrades] = useState([])
@@ -24,22 +24,32 @@ export default function CheckPoints() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // elementId from URL — when set, we show/manage element-specific checkpoints
+  const elementId = paramElementId || null
+  const [elementCtx, setElementCtx] = useState(null) // { name, type, projectId, floorId, locationId }
+
   useEffect(() => { adminGetTrades().then(r => setTrades(r.data)) }, [])
+
+  // Fetch element context (project/floor/location) when elementId is present
+  useEffect(() => {
+    if (!elementId) return
+    adminGetElement(elementId).then(r => setElementCtx(r.data)).catch(() => {})
+  }, [elementId])
 
   const load = () => {
     if (!selTrade) return
     setLoading(true)
-    adminGetCheckPoints(selTrade).then(r => setCheckpoints(r.data)).finally(() => setLoading(false))
+    adminGetCheckPoints(selTrade, elementId).then(r => setCheckpoints(r.data)).finally(() => setLoading(false))
   }
-  useEffect(load, [selTrade])
+  useEffect(load, [selTrade, elementId])
 
   const openAdd = () => {
     const nextOrder = checkpoints.length ? Math.max(...checkpoints.map(c => c.order)) + 1 : 1
-    setForm({ ...BLANK, order: nextOrder, tradeId: selTrade })
+    setForm({ ...BLANK, order: nextOrder, tradeId: selTrade, ...(elementId ? { elementId } : {}) })
     setError(''); setModal('add')
   }
   const openEdit = (cp) => {
-    setForm({ title: cp.title, order: cp.order, standard: cp.standard || '', howToCheck: cp.howToCheck || '', photoRequired: cp.photoRequired, tradeId: selTrade })
+    setForm({ title: cp.title, order: cp.order, standard: cp.standard || '', howToCheck: cp.howToCheck || '', photoRequired: cp.photoRequired, tradeId: selTrade, ...(elementId ? { elementId } : {}) })
     setModal(cp._id)
   }
 
@@ -78,14 +88,26 @@ export default function CheckPoints() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <button
-              onClick={() => navigate('/admin/trades')}
+              onClick={() => elementId ? navigate(`/admin/trades/${selTrade}/elements`) : navigate('/admin/trades')}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-orange-500 transition-colors mb-2"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Trades
+              <ArrowLeft className="w-3.5 h-3.5" /> {elementId ? 'Back to Elements' : 'Back to Trades'}
             </button>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Check Points{tradeName ? <span className="text-orange-500"> — {tradeName}</span> : ''}
             </h1>
+            {elementId && elementCtx && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Layers className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-semibold text-gray-700 dark:text-gray-200">{elementCtx.projectId?.name}</span>
+                <span className="text-gray-400">›</span>
+                <span>{elementCtx.floorId?.label}</span>
+                <span className="text-gray-400">›</span>
+                <span>{elementCtx.locationId?.name}</span>
+                <span className="text-gray-400">›</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{elementCtx.name}</span>
+              </div>
+            )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Define inspection points and acceptance standards.</p>
           </div>
           {selTrade && (
