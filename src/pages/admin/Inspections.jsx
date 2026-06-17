@@ -82,7 +82,7 @@ export default function Inspections() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    {['Project','Floor › Location','Trade','Date','Contractor','Engineer','Status','Actions'].map(h => (
+                    {['Project','Floor › Location › Element','Trade','Date','Contractor','Engineer','Status','Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -95,7 +95,12 @@ export default function Inspections() {
                       onClick={() => navigate(`/admin/inspections/${ins._id}`)}
                     >
                       <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white whitespace-nowrap">{ins.projectId?.name}</td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{ins.floorId?.label} › {ins.locationId?.name}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {ins.floorId?.label} › {ins.locationId?.name}
+                        {ins.elementId && (
+                          <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">› {ins.elementId?.name}</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{ins.tradeId?.name}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{new Date(ins.dateOfCheck).toLocaleDateString('en-IN')}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{ins.contractorAgency || '—'}</td>

@@ -5,7 +5,7 @@ import Modal from '../../components/Modal'
 import { Plus, Pencil, Trash2, ArrowLeft, Camera, Eye, EyeOff, Layers } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
-import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint } from '../../api'
+import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint, adminGetElement } from '../../api'
 
 const BLANK = { title: '', order: 1, standard: '', howToCheck: '', photoRequired: false }
 
@@ -26,8 +26,15 @@ export default function CheckPoints() {
 
   // elementId from URL — when set, we show/manage element-specific checkpoints
   const elementId = paramElementId || null
+  const [elementCtx, setElementCtx] = useState(null) // { name, type, projectId, floorId, locationId }
 
   useEffect(() => { adminGetTrades().then(r => setTrades(r.data)) }, [])
+
+  // Fetch element context (project/floor/location) when elementId is present
+  useEffect(() => {
+    if (!elementId) return
+    adminGetElement(elementId).then(r => setElementCtx(r.data)).catch(() => {})
+  }, [elementId])
 
   const load = () => {
     if (!selTrade) return
@@ -89,10 +96,16 @@ export default function CheckPoints() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Check Points{tradeName ? <span className="text-orange-500"> — {tradeName}</span> : ''}
             </h1>
-            {elementId && (
-              <div className="flex items-center gap-1.5 mt-1 text-sm text-blue-600 dark:text-blue-400 font-medium">
-                <Layers className="w-4 h-4" />
-                Element-specific checkpoints
+            {elementId && elementCtx && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Layers className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                <span className="font-semibold text-gray-700 dark:text-gray-200">{elementCtx.projectId?.name}</span>
+                <span className="text-gray-400">›</span>
+                <span>{elementCtx.floorId?.label}</span>
+                <span className="text-gray-400">›</span>
+                <span>{elementCtx.locationId?.name}</span>
+                <span className="text-gray-400">›</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{elementCtx.name}</span>
               </div>
             )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Define inspection points and acceptance standards.</p>
