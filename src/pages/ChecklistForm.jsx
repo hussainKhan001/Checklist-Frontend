@@ -16,6 +16,28 @@ const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dar
 
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''
 
+// Compress image client-side before upload (max 1280px, 75% JPEG quality)
+const compressImage = (file, maxPx = 1280, quality = 0.75) =>
+  new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width  = Math.round(img.width  * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        blob => resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
+        'image/jpeg',
+        quality
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) } // fallback: upload original
+    img.src = url
+  })
+
 export default function ChecklistForm() {
   const { tradeId } = useParams()
   const { projectId, floorId, locationId, elementId } = JSON.parse(sessionStorage.getItem('checklistCtx') || '{}')
@@ -49,6 +71,7 @@ export default function ChecklistForm() {
   const [isSaving, setIsSaving]                   = useState(false)
   const [draftRestoredAt, setDraftRestoredAt]     = useState(null)
   const [showDraftBanner, setShowDraftBanner]     = useState(false)
+  const [uploadingCps, setUploadingCps]           = useState(new Set())
 
   // ── Load context data ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -157,14 +180,18 @@ export default function ChecklistForm() {
 
   const handlePhotoUpload = async (cpId, file) => {
     if (!file) return
+    setUploadingCps(prev => new Set(prev).add(cpId))
     try {
+      const compressed = await compressImage(file)
       const fd = new FormData()
-      fd.append('photo', file)
+      fd.append('photo', compressed)
       if (inspIdRef.current) fd.append('inspectionId', inspIdRef.current)
       const res = await uploadPhoto(fd)
       setPhotos(prev => ({ ...prev, [cpId]: [...(prev[cpId] || []), res.data.url] }))
     } catch {
       toast.error('Photo upload failed.')
+    } finally {
+      setUploadingCps(prev => { const s = new Set(prev); s.delete(cpId); return s })
     }
   }
 
@@ -427,19 +454,24 @@ export default function ChecklistForm() {
                   <XCircle className="w-4 h-4" /> Not OK
                 </button>
                 <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer transition-all ${
-                  (photos[cp._id] || []).length > 0
-                    ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                    : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600'
+                  uploadingCps.has(cp._id)
+                    ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500 cursor-wait'
+                    : (photos[cp._id] || []).length > 0
+                      ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
+                      : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600'
                 }`}>
-                  <Camera className="w-4 h-4" />
-                  {(photos[cp._id] || []).length > 0
-                    ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
-                    : cp.photoRequired ? 'Add photo (required)' : 'Add photo'
+                  <Camera className={`w-4 h-4 ${uploadingCps.has(cp._id) ? 'animate-pulse' : ''}`} />
+                  {uploadingCps.has(cp._id)
+                    ? 'Uploading…'
+                    : (photos[cp._id] || []).length > 0
+                      ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
+                      : cp.photoRequired ? 'Add photo (required)' : 'Add photo'
                   }
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
+                    disabled={uploadingCps.has(cp._id)}
                     ref={el => fileInputRefs.current[cp._id] = el}
                     onChange={e => handlePhotoUpload(cp._id, e.target.files[0])}
                   />
