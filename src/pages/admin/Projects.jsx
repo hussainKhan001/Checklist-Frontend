@@ -8,7 +8,7 @@ import InputField from '../../components/ui/InputField'
 import Badge from '../../components/ui/Badge'
 import { adminGetProjects, adminCreateProject, adminUpdateProject, adminDeleteProject } from '../../api'
 import { useConfirm } from '../../context/ConfirmContext'
-import { Layers, Pencil, Trash2 } from 'lucide-react'
+import { Layers, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const BLANK = { name: '', type: 'RESIDENTIAL', description: '' }
@@ -43,6 +43,12 @@ export default function Projects() {
     finally { setSaving(false) }
   }
 
+  const toggleHide = async (p) => {
+    await adminUpdateProject(p._id, { isHidden: !p.isHidden })
+    setProjects(prev => prev.map(x => x._id === p._id ? { ...x, isHidden: !x.isHidden } : x))
+    toast.success(p.isHidden ? 'Project visible' : 'Project hidden')
+  }
+
   const del = async id => {
     const ok = await confirm('Delete this project?', 'This will permanently remove all floors, locations, and inspections linked to it.')
     if (!ok) return
@@ -52,7 +58,15 @@ export default function Projects() {
   }
 
   const columns = [
-    { label: 'Name',        render: p => <span className="font-semibold text-gray-900 dark:text-white">{p.name}</span> },
+    {
+      label: 'Name',
+      render: p => (
+        <div className="flex items-center gap-2">
+          <span className={`font-semibold ${p.isHidden ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>{p.name}</span>
+          {p.isHidden && <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Hidden</span>}
+        </div>
+      )
+    },
     { label: 'Type',        render: p => <Badge variant={TYPE_VARIANT[p.type]}>{TYPE_LABEL[p.type] || p.type}</Badge> },
     { label: 'Description', render: p => <span className="text-gray-500 dark:text-gray-400 max-w-xs truncate block">{p.description || '—'}</span> },
     {
@@ -63,6 +77,9 @@ export default function Projects() {
             <Layers className="w-3.5 h-3.5" /> Floors
           </button>
           <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>
+          <button onClick={() => toggleHide(p)} title={p.isHidden ? 'Show project' : 'Hide project'} className={`p-1.5 rounded-lg transition-colors ${p.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+            {p.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
           <button onClick={() => del(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
         </div>
       )

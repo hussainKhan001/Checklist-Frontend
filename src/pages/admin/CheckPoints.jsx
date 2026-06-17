@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
-import { Plus, Pencil, Trash2, ArrowLeft, Camera, CheckSquare } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowLeft, Camera, CheckSquare, Eye, EyeOff } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint } from '../../api'
@@ -53,6 +53,12 @@ export default function CheckPoints() {
       toast.success(modal === 'add' ? 'Check point added' : 'Check point updated')
     } catch (e) { setError(e.response?.data?.message || 'Save failed.') }
     finally { setSaving(false) }
+  }
+
+  const toggleHide = async (cp) => {
+    await adminUpdateCheckPoint(cp._id, { isHidden: !cp.isHidden })
+    setCheckpoints(prev => prev.map(x => x._id === cp._id ? { ...x, isHidden: !x.isHidden } : x))
+    toast.success(cp.isHidden ? 'Check point visible' : 'Check point hidden')
   }
 
   const del = async (id) => {
@@ -129,10 +135,13 @@ export default function CheckPoints() {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {checkpoints.map(cp => (
-                  <tr key={cp._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={cp._id} className={`transition-colors ${cp.isHidden ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
                     <td className="px-4 py-3 text-gray-400 font-mono text-xs">{cp.order}</td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-gray-900 dark:text-white">{cp.title}</div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-semibold ${cp.isHidden ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{cp.title}</span>
+                        {cp.isHidden && <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-500">Hidden</span>}
+                      </div>
                       {cp.howToCheck && (
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{cp.howToCheck}</div>
                       )}
@@ -151,18 +160,13 @@ export default function CheckPoints() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(cp)}
-                          title="Edit"
-                          className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"
-                        >
+                        <button onClick={() => openEdit(cp)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors">
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => del(cp._id)}
-                          title="Delete"
-                          className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                        >
+                        <button onClick={() => toggleHide(cp)} title={cp.isHidden ? 'Show check point' : 'Hide check point'} className={`p-1.5 rounded-lg transition-colors ${cp.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                          {cp.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                        <button onClick={() => del(cp._id)} title="Delete" className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>

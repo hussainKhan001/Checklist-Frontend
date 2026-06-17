@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjects, getInspections } from '../api'
+import { getProjects } from '../api'
 import { Building2, Home, ChevronRight } from 'lucide-react'
 
 const TYPE_LABELS = {
@@ -15,14 +15,13 @@ const TYPE_COLORS = {
 
 export default function SelectProject() {
   const [projects, setProjects] = useState([])
-  const [inspections, setInspections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    Promise.all([getProjects(), getInspections()])
-      .then(([pRes, iRes]) => { setProjects(pRes.data); setInspections(iRes.data) })
+    getProjects()
+      .then(r => setProjects(r.data))
       .catch(() => setError('Failed to load projects.'))
       .finally(() => setLoading(false))
   }, [])
@@ -75,29 +74,6 @@ export default function SelectProject() {
         </div>
       ))}
 
-      {/* Recent inspections */}
-      {inspections.length > 0 && (
-        <div>
-          <div className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Recent Inspections (this device)</div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm divide-y divide-gray-100 dark:divide-gray-700/50">
-            {inspections.slice(0, 5).map(ins => (
-              <div key={ins._id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{ins.tradeId?.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {ins.projectId?.name} · {ins.floorId?.label} · {ins.locationId?.name}
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded text-[11px] font-semibold flex-shrink-0 ${
-                  ins.status === 'SUBMITTED'
-                    ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'
-                }`}>{ins.status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

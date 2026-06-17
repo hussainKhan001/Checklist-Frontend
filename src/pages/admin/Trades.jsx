@@ -4,7 +4,7 @@ import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
 import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../api'
 import { useConfirm } from '../../context/ConfirmContext'
-import { Plus, Pencil, Trash2, CheckSquare, Layers } from 'lucide-react'
+import { Plus, Pencil, Trash2, CheckSquare, Layers, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const BLANK = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '' }
@@ -47,6 +47,12 @@ export default function Trades() {
     finally { setSaving(false) }
   }
 
+  const toggleHide = async (t) => {
+    await adminUpdateTrade(t._id, { isHidden: !t.isHidden })
+    setTrades(prev => prev.map(x => x._id === t._id ? { ...x, isHidden: !x.isHidden } : x))
+    toast.success(t.isHidden ? 'Trade visible' : 'Trade hidden')
+  }
+
   const del = async (id) => {
     const ok = await confirm('Delete trade and all its check points?', 'This will permanently remove all associated check points.')
     if (!ok) return
@@ -85,9 +91,14 @@ export default function Trades() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                   {trades.map(t => (
-                    <tr key={t._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <tr key={t._id} className={`transition-colors ${t.isHidden ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
                       <td className="px-4 py-3 text-gray-400 dark:text-gray-500 text-xs">{t.order}</td>
-                      <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">{t.name}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold ${t.isHidden ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{t.name}</span>
+                          {t.isHidden && <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-500">Hidden</span>}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         {t.isHoldPoint
                           ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">Hold Point</span>
@@ -108,6 +119,9 @@ export default function Trades() {
                             <CheckSquare className="w-3.5 h-3.5" /> Checkpoints
                           </button>
                           <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Show trade' : 'Hide trade'} className={`p-1.5 rounded-lg transition-colors ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                            {t.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
                           <button onClick={() => del(t._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
