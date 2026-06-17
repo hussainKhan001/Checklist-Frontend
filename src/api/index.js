@@ -67,6 +67,12 @@ export const adminUpdateLocation = (id, data) => api.put(`/admin/locations/${id}
 export const adminDeleteLocation = (id) => api.delete(`/admin/locations/${id}`)
 
 export const adminGetElements = (locationId) => api.get(`/admin/elements${locationId ? `?locationId=${locationId}` : ''}`)
+
+export const getTradeElements = (tradeId, locationId) => api.get(`/trade-elements?tradeId=${tradeId}${locationId ? `&locationId=${locationId}` : ''}`)
+export const adminGetTradeElements = (tradeId) => api.get(`/admin/trade-elements?tradeId=${tradeId}`)
+export const adminGetTradeElementsByLocation = (locationId) => api.get(`/admin/trade-elements?locationId=${locationId}`)
+export const adminCreateTradeElement = (data) => api.post('/admin/trade-elements', data)
+export const adminDeleteTradeElement = (id) => api.delete(`/admin/trade-elements/${id}`)
 export const adminCreateElement = (data) => api.post('/admin/elements', data)
 export const adminUpdateElement = (id, data) => api.put(`/admin/elements/${id}`, data)
 export const adminDeleteElement = (id) => api.delete(`/admin/elements/${id}`)

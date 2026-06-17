@@ -4,7 +4,7 @@ import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
 import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../api'
 import { useConfirm } from '../../context/ConfirmContext'
-import { Plus, Pencil, Trash2, CheckSquare } from 'lucide-react'
+import { Plus, Pencil, Trash2, CheckSquare, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const BLANK = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '' }
@@ -101,6 +101,9 @@ export default function Trades() {
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{cpCounts[t._id] ?? '…'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
+                          <button onClick={() => navigate(`/admin/trades/${t._id}/elements`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+                            <Layers className="w-3.5 h-3.5" /> Elements
+                          </button>
                           <button onClick={() => navigate(`/admin/trades/${t._id}/checkpoints`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
                             <CheckSquare className="w-3.5 h-3.5" /> Checkpoints
                           </button>
