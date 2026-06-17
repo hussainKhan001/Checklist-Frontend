@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import {
   adminGetTrades, adminGetProjects, adminGetFloors, adminGetLocations, adminGetElements,
   adminGetTradeElements, adminCreateTradeElement, adminDeleteTradeElement,
 } from '../../api'
 import { useConfirm } from '../../context/ConfirmContext'
-import { Plus, Trash2, ChevronRight, Layers } from 'lucide-react'
+import { Plus, Trash2, ChevronRight, Layers, CheckSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const TYPE_COLOR = {
@@ -27,6 +27,7 @@ const selectCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 da
 
 export default function TradeElements() {
   const { tradeId } = useParams()
+  const navigate = useNavigate()
   const confirm = useConfirm()
 
   const [trade, setTrade] = useState(null)
@@ -199,13 +200,22 @@ export default function TradeElements() {
                         </span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">{a.elementId?.name}</span>
                       </div>
-                      <button
-                        onClick={() => handleDelete(a._id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                        title="Remove assignment"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => navigate(`/admin/trades/${tradeId}/elements/${a.elementId?._id}/checkpoints`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                          title="Manage checkpoints for this element"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" /> Checkpoints
+                        </button>
+                        <button
+                          onClick={() => handleDelete(a._id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                          title="Remove assignment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -42,7 +42,7 @@ export default function ChecklistForm() {
       getFloor(floorId),
       getLocations(floorId),
       getTrade(tradeId),
-      getCheckPoints(tradeId),
+      getCheckPoints(tradeId, elementId || null),
       elementId ? getElements(locationId) : Promise.resolve({ data: [] }),
     ])
       .then(([pRes, fRes, lRes, tRes, cpRes, eRes]) => {
