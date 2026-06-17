@@ -15,14 +15,5 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist',
     sourcemap: mode !== 'production',
     chunkSizeWarningLimit: 600,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react', 'react-hot-toast'],
-          api: ['axios'],
-        },
-      },
-    },
   },
 }))

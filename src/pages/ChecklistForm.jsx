@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getProject, getFloor, getLocations, getTrade, getCheckPoints,
-  createInspection, submitInspection, uploadPhoto,
+  getElements, createInspection, submitInspection, uploadPhoto,
 } from '../api'
 import {
   ArrowLeft, ChevronRight, AlertTriangle, Camera, CheckCircle2,
@@ -14,12 +14,13 @@ const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dar
 
 export default function ChecklistForm() {
   const { tradeId } = useParams()
-  const { projectId, floorId, locationId } = JSON.parse(sessionStorage.getItem('checklistCtx') || '{}')
+  const { projectId, floorId, locationId, elementId } = JSON.parse(sessionStorage.getItem('checklistCtx') || '{}')
   const navigate = useNavigate()
 
   const [project, setProject] = useState(null)
   const [floor, setFloor] = useState(null)
   const [location, setLocation] = useState(null)
+  const [element, setElement] = useState(null)
   const [trade, setTrade] = useState(null)
   const [checkPoints, setCheckPoints] = useState([])
   const [loading, setLoading] = useState(true)
@@ -42,12 +43,14 @@ export default function ChecklistForm() {
       getLocations(floorId),
       getTrade(tradeId),
       getCheckPoints(tradeId),
+      elementId ? getElements(locationId) : Promise.resolve({ data: [] }),
     ])
-      .then(([pRes, fRes, lRes, tRes, cpRes]) => {
+      .then(([pRes, fRes, lRes, tRes, cpRes, eRes]) => {
         setProject(pRes.data)
         setFloor(fRes.data)
         const loc = lRes.data.find(l => l._id === locationId)
         setLocation(loc || null)
+        if (elementId) setElement(eRes.data.find(e => e._id === elementId) || null)
         setTrade(tRes.data)
         setCheckPoints(cpRes.data)
         const initial = {}
@@ -81,7 +84,9 @@ export default function ChecklistForm() {
     setSubmitting(true)
     try {
       const payload = {
-        projectId, floorId, locationId, tradeId,
+        projectId, floorId, locationId,
+        ...(elementId ? { elementId } : {}),
+        tradeId,
         contractorAgency, checkedBy,
         results: checkPoints.map(cp => ({
           checkPointId: cp._id,
@@ -115,6 +120,7 @@ export default function ChecklistForm() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Checklist Submitted</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
           {trade?.name} — {project?.name}, {floor?.label}, {location?.name}
+          {element && ` / ${element.name}`}
         </p>
         <button
           onClick={() => navigate('/')}
@@ -148,6 +154,12 @@ export default function ChecklistForm() {
         <Link to={`/p/${projectId}/f/${floorId}`} className="hover:text-orange-500 transition-colors font-medium">
           {locationName}
         </Link>
+        {element && (
+          <>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span className="text-gray-500 dark:text-gray-400 font-medium truncate max-w-[80px]">{element.name}</span>
+          </>
+        )}
         <ChevronRight className="w-3 h-3 flex-shrink-0" />
         <span className="text-gray-600 dark:text-gray-300 font-medium truncate max-w-[120px]">{trade?.name || '…'}</span>
       </nav>
@@ -193,6 +205,7 @@ export default function ChecklistForm() {
               <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Project / Location</div>
               <div className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
                 {project?.name} — {floor?.label}, {locationName}
+                {element && <span className="text-orange-500"> / {element.name}</span>}
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import SelectProject from './pages/SelectProject'
 import SelectFloor from './pages/SelectFloor'
 import SelectLocation from './pages/SelectLocation'
 import SelectTrade from './pages/SelectTrade'
+import SelectElementForTrade from './pages/SelectElementForTrade'
 import ChecklistForm from './pages/ChecklistForm'
 import Dashboard from './pages/admin/Dashboard'
 import Inspections from './pages/admin/Inspections'
@@ -19,6 +20,8 @@ import Projects from './pages/admin/Projects'
 import Floors from './pages/admin/Floors'
 import Trades from './pages/admin/Trades'
 import CheckPoints from './pages/admin/CheckPoints'
+import ElementTrades from './pages/admin/ElementTrades'
+import TradeElements from './pages/admin/TradeElements'
 import Users from './pages/admin/Users'
 
 export default function App() {
@@ -56,6 +59,8 @@ export default function App() {
         <Route path="/admin/projects/:projectId/floors" element={<ProtectedRoute adminOnly><Floors /></ProtectedRoute>} />
         <Route path="/admin/trades" element={<ProtectedRoute adminOnly><Trades /></ProtectedRoute>} />
         <Route path="/admin/trades/:tradeId/checkpoints" element={<ProtectedRoute adminOnly><CheckPoints /></ProtectedRoute>} />
+        <Route path="/admin/elements/:elementId/trades" element={<ProtectedRoute adminOnly><ElementTrades /></ProtectedRoute>} />
+        <Route path="/admin/trades/:tradeId/elements" element={<ProtectedRoute adminOnly><TradeElements /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
 
         {/* User site routes (public - no login required) */}
@@ -68,6 +73,7 @@ export default function App() {
                 <Route path="/p/:projectId" element={<SelectFloor />} />
                 <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
                 <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
+                <Route path="/p/:projectId/f/:floorId/l/:locationId/t/:tradeId" element={<SelectElementForTrade />} />
                 <Route path="/c/:tradeId" element={<ChecklistForm />} />
               </Routes>
             </main>
