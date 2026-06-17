@@ -61,7 +61,7 @@ export default function Floors() {
   // Add-work inline form
   const [addingWork, setAddingWork]   = useState(false)
   const [newTradeId, setNewTradeId]   = useState('')
-  const [newElemId, setNewElemId]     = useState('')
+  const [newElemIds, setNewElemIds]   = useState(new Set())
   const [addingW, setAddingW]         = useState(false)
 
   // Element management mini-panel (collapsible)
@@ -159,22 +159,26 @@ export default function Floors() {
   const configuredTradeIds = new Set(Object.keys(groups))
   const availableTrades = trades.filter(t => !configuredTradeIds.has(t._id))
 
+  const toggleNewElem = (id) => setNewElemIds(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
   /* ── Add Work ─────────────────────────────────────── */
   const handleAddWork = async () => {
     if (!newTradeId) return toast.error('Select a work first.')
     setAddingW(true)
     try {
-      if (newElemId) {
-        await adminCreateTradeElement({ tradeId: newTradeId, elementId: newElemId })
-      } else {
-        // assign a placeholder-less entry won't work — need at least one element
-        // Instead just close and open edit for that trade so user can add elements
+      if (newElemIds.size > 0) {
+        await Promise.all([...newElemIds].map(elemId =>
+          adminCreateTradeElement({ tradeId: newTradeId, elementId: elemId })
+        ))
       }
       await refreshTE()
-      setAddingWork(false); setNewTradeId(''); setNewElemId('')
-      if (!newElemId) {
-        setEditTradeId(newTradeId) // auto-open assign row
-      }
+      const hadElems = newElemIds.size > 0
+      setAddingWork(false); setNewTradeId(''); setNewElemIds(new Set())
+      if (!hadElems) setEditTradeId(newTradeId)
       toast.success('Work added.')
     } catch { toast.error('Failed or already assigned.') }
     finally { setAddingW(false) }
@@ -362,7 +366,7 @@ export default function Floors() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { setShowElems(false); setAddingWork(v => !v); setNewTradeId(''); setNewElemId('') }}
+                  onClick={() => { setShowElems(false); setAddingWork(v => !v); setNewTradeId(''); setNewElemIds(new Set()) }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-sm transition"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Work
@@ -374,40 +378,70 @@ export default function Floors() {
             {addingWork && (
               <div className="px-4 py-3.5 border-b border-orange-100 dark:border-orange-500/20 bg-orange-50/50 dark:bg-orange-500/5">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2.5 uppercase tracking-wider">New Work Assignment</p>
-                <div className="flex flex-wrap items-end gap-2.5">
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Work / Trade *</label>
-                    <select className={selectSm + ' min-w-[180px]'} value={newTradeId} onChange={e => setNewTradeId(e.target.value)}>
-                      <option value="">— select work —</option>
-                      {availableTrades.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                    </select>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-end gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Work / Trade *</label>
+                      <select className={selectSm + ' min-w-[180px]'} value={newTradeId} onChange={e => setNewTradeId(e.target.value)}>
+                        <option value="">— select work —</option>
+                        {availableTrades.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleAddWork}
+                      disabled={!newTradeId || addingW}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white transition"
+                    >
+                      {addingW ? 'Adding…' : 'Add'}
+                    </button>
+                    <button
+                      onClick={() => { setAddingWork(false); setNewTradeId(''); setNewElemIds(new Set()) }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">First Element (optional)</label>
-                    <select className={selectSm + ' min-w-[160px]'} value={newElemId} onChange={e => setNewElemId(e.target.value)} disabled={!newTradeId}>
-                      <option value="">— none for now —</option>
-                      {elements.map(el => <option key={el._id} value={el._id}>{el.name} ({ELEM_LABEL[el.type] || el.type})</option>)}
-                    </select>
-                  </div>
-                  <button
-                    onClick={handleAddWork}
-                    disabled={!newTradeId || addingW}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white transition"
-                  >
-                    {addingW ? 'Adding…' : 'Add'}
-                  </button>
-                  <button
-                    onClick={() => { setAddingWork(false); setNewTradeId(''); setNewElemId('') }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
+
+                  {/* Multi-element selector */}
+                  {elements.length > 0 ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                          Elements to assign {newElemIds.size > 0 && <span className="text-orange-500 font-bold">({newElemIds.size} selected)</span>}
+                        </label>
+                        {newElemIds.size > 0 && (
+                          <button onClick={() => setNewElemIds(new Set())} className="text-[10px] text-gray-400 hover:text-red-400 transition-colors">clear</button>
+                        )}
+                        {newElemIds.size < elements.length && (
+                          <button onClick={() => setNewElemIds(new Set(elements.map(e => e._id)))} className="text-[10px] text-gray-400 hover:text-orange-500 transition-colors">select all</button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {elements.map(el => {
+                          const sel = newElemIds.has(el._id)
+                          return (
+                            <button
+                              key={el._id}
+                              type="button"
+                              onClick={() => toggleNewElem(el._id)}
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                                sel
+                                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                                  : `${TYPE_COLOR[el.type] || TYPE_COLOR.OTHER} border-transparent hover:border-orange-300`
+                              }`}
+                            >
+                              {el.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      No structural elements at this location yet. Add elements first using the "Manage Elements" section below.
+                    </p>
+                  )}
                 </div>
-                {elements.length === 0 && (
-                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                    No structural elements at this location yet. Add elements first using the "Manage Elements" section below.
-                  </p>
-                )}
               </div>
             )}
 

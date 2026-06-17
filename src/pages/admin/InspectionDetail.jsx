@@ -91,6 +91,14 @@ export default function InspectionDetail() {
           ))}
         </div>
 
+        {/* Work notes */}
+        {ins.workNotes && (
+          <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl px-4 py-3">
+            <div className="text-[10px] font-semibold text-blue-500 uppercase tracking-wider mb-1">Work Done</div>
+            <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">{ins.workNotes}</p>
+          </div>
+        )}
+
         {/* Checkpoints */}
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Check Points</h2>
@@ -131,25 +139,6 @@ export default function InspectionDetail() {
                 </div>
               )
             })}
-          </div>
-        </div>
-
-        {/* Signatures */}
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Signatures</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { role: 'Site Engineer', name: ins.signatures?.siteEngineer },
-              { role: 'Contractor Rep.', name: ins.signatures?.contractorRep },
-              { role: 'Project Manager', name: ins.signatures?.projectManager },
-            ].map(({ role, name }) => (
-              <div key={role} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
-                <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-1">{role}</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {name || <span className="italic text-gray-400 font-normal">Not signed</span>}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

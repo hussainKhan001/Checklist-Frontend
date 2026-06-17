@@ -41,7 +41,7 @@ export const getElements = (locationId) => api.get(`/elements?locationId=${locat
 export const getTrades = (elementId) => api.get(`/trades${elementId ? `?elementId=${elementId}` : ''}`)
 export const getTrade = (id) => api.get(`/trades/${id}`)
 export const getCheckPoints = (tradeId) => api.get(`/checkpoints?tradeId=${tradeId}`)
-export const getInspections = () => api.get('/inspections')
+export const getInspections = (params = {}) => api.get('/inspections', { params })
 export const createInspection = (data) => api.post('/inspections', data)
 export const updateInspection = (id, data) => api.put(`/inspections/${id}`, data)
 export const submitInspection = (id, data) => api.post(`/inspections/${id}/submit`, data)

@@ -30,10 +30,10 @@ export default function ChecklistForm() {
 
   const [contractorAgency, setContractorAgency] = useState('')
   const [checkedBy, setCheckedBy] = useState('')
+  const [dateOfCheck, setDateOfCheck] = useState(new Date().toISOString().split('T')[0])
+  const [workNotes, setWorkNotes] = useState('')
   const [results, setResults] = useState({})
   const [photos, setPhotos] = useState({})
-  const [signatures, setSignatures] = useState({ siteEngineer: '', contractorRep: '', projectManager: '' })
-
   const fileInputRefs = useRef({})
 
   useEffect(() => {
@@ -77,26 +77,23 @@ export default function ChecklistForm() {
   }
 
   const handleSubmit = async () => {
-    if (!signatures.siteEngineer || !signatures.contractorRep || !signatures.projectManager) {
-      toast.error('All three signatures are required before submitting.')
-      return
-    }
     setSubmitting(true)
     try {
       const payload = {
         projectId, floorId, locationId,
         ...(elementId ? { elementId } : {}),
         tradeId,
+        dateOfCheck,
+        workNotes,
         contractorAgency, checkedBy,
         results: checkPoints.map(cp => ({
           checkPointId: cp._id,
           result: results[cp._id] || 'PENDING',
           photos: photos[cp._id] || [],
         })),
-        signatures,
       }
       const { data: inspection } = await createInspection(payload)
-      await submitInspection(inspection._id, { signatures })
+      await submitInspection(inspection._id, {})
       setSubmitted(true)
     } catch {
       toast.error('Submission failed. Please try again.')
@@ -132,7 +129,6 @@ export default function ChecklistForm() {
     )
   }
 
-  const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   const locationName = location?.name || locationId
   const okCount = Object.values(results).filter(r => r === 'OK').length
   const notOkCount = Object.values(results).filter(r => r === 'NOT_OK').length
@@ -214,9 +210,16 @@ export default function ChecklistForm() {
             <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-500/15 flex items-center justify-center flex-shrink-0">
               <Calendar className="w-4 h-4 text-purple-500" />
             </div>
-            <div>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">Date of Check</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-white">{today}</div>
+            <div className="flex-1 min-w-0">
+              <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                Date of Inspection
+              </label>
+              <input
+                type="date"
+                className={inputCls}
+                value={dateOfCheck}
+                onChange={e => setDateOfCheck(e.target.value)}
+              />
             </div>
           </div>
 
@@ -252,6 +255,27 @@ export default function ChecklistForm() {
                 onChange={e => setCheckedBy(e.target.value)}
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily work notes */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <ClipboardCheck className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+              Work Done Today <span className="normal-case font-normal text-gray-400">(optional)</span>
+            </label>
+            <textarea
+              className={inputCls}
+              rows={3}
+              placeholder="Describe today's progress — e.g. 'Completed brickwork up to lintel level on North wall. Mortar mixing ratio verified.'"
+              value={workNotes}
+              onChange={e => setWorkNotes(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -407,43 +431,6 @@ export default function ChecklistForm() {
           <span className="font-bold text-gray-700 dark:text-gray-200">Result — </span>
           All points OK → work approved to proceed. Any Not OK → record action, rectify, re-inspect BEFORE the next activity covers it.
         </p>
-      </div>
-
-      {/* Signatures */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-2 text-center">
-            Three signatures make this sheet valid — an unsigned checklist is a non-existent checklist
-          </span>
-          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { key: 'siteEngineer', label: 'Site Engineer', note: 'I physically stood at the work and verified every point.' },
-            { key: 'contractorRep', label: 'Contractor Representative', note: 'I accept the findings and the corrective actions recorded.' },
-            { key: 'projectManager', label: 'Project Manager', note: 'I verified the sheet, photos, and any Not OK actions.' },
-          ].map(({ key, label, note }) => (
-            <div
-              key={key}
-              className={`bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm transition-all ${
-                signatures[key]
-                  ? 'border-emerald-300 dark:border-emerald-500/40'
-                  : 'border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              <div className="text-xs font-bold text-gray-700 dark:text-gray-200 mb-2 leading-tight">{label}</div>
-              <input
-                className={inputCls}
-                placeholder="Full name"
-                value={signatures[key]}
-                onChange={e => setSignatures(s => ({ ...s, [key]: e.target.value }))}
-              />
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 leading-relaxed italic">{note}</p>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Submit */}
