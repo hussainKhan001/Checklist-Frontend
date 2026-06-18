@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { Sun, Moon, LogOut, ShieldCheck } from 'lucide-react'
 
 export default function Header({ theme, toggleTheme }) {
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const navigate = useNavigate()
 
   return (
@@ -28,7 +28,7 @@ export default function Header({ theme, toggleTheme }) {
 
         {/* Right */}
         <div className="flex items-center gap-1.5">
-          {user?.role === 'admin' && (
+          {hasPermission('admin_access') && (
             <Link
               to="/admin"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold

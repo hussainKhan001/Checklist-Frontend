@@ -5,6 +5,7 @@ import StatCard from '../../components/ui/StatCard'
 import DataTable from '../../components/ui/DataTable'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { adminGetStats, adminGetInspections } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import { ClipboardList, CheckCircle2, Clock, FolderOpen, Layers, Users, ArrowRight } from 'lucide-react'
 
 const STAT_DEFS = [
@@ -29,11 +30,18 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [recent, setRecent] = useState([])
   const [loading, setLoading] = useState(true)
+  const { hasPermission } = useAuth()
 
   useEffect(() => {
-    Promise.all([adminGetStats(), adminGetInspections()])
-      .then(([s, i]) => { setStats(s.data); setRecent(i.data.slice(0, 8)) })
-      .finally(() => setLoading(false))
+    const statsFetch = hasPermission('view_dashboard')
+      ? adminGetStats().then(r => setStats(r.data)).catch(() => {})
+      : Promise.resolve()
+
+    const recentFetch = hasPermission('view_inspections')
+      ? adminGetInspections().then(r => setRecent(r.data.slice(0, 8))).catch(() => {})
+      : Promise.resolve()
+
+    Promise.all([statsFetch, recentFetch]).finally(() => setLoading(false))
   }, [])
 
   if (loading) return (
@@ -50,21 +58,29 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Overview of all site inspections</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-          {STAT_DEFS.map(({ key, ...def }) => (
-            <StatCard key={key} {...def} value={stats?.[key]} />
-          ))}
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Inspections</h2>
-            <Link to="/admin/inspections" className="flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
+        {hasPermission('view_dashboard') ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+            {STAT_DEFS.map(({ key, ...def }) => (
+              <StatCard key={key} {...def} value={stats?.[key]} />
+            ))}
           </div>
-          <DataTable columns={RECENT_COLS} data={recent} emptyText="No inspections yet." />
-        </div>
+        ) : (
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-5 py-8 text-center text-sm text-gray-400">
+            Dashboard stats require the <strong>View Dashboard Stats</strong> permission.
+          </div>
+        )}
+
+        {hasPermission('view_inspections') && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Inspections</h2>
+              <Link to="/admin/inspections" className="flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors">
+                View all <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <DataTable columns={RECENT_COLS} data={recent} emptyText="No inspections yet." />
+          </div>
+        )}
       </div>
     </AdminLayout>
   )

@@ -23,6 +23,7 @@ import CheckPoints from './pages/admin/CheckPoints'
 import ElementTrades from './pages/admin/ElementTrades'
 import TradeElements from './pages/admin/TradeElements'
 import Users from './pages/admin/Users'
+import Roles from './pages/admin/Roles'
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
@@ -51,34 +52,37 @@ export default function App() {
         {/* Public */}
         <Route path="/login" element={<Login />} />
 
-        {/* Admin routes (no site header/footer) */}
-        <Route path="/admin" element={<ProtectedRoute adminOnly><Dashboard /></ProtectedRoute>} />
-        <Route path="/admin/inspections" element={<ProtectedRoute adminOnly><Inspections /></ProtectedRoute>} />
-        <Route path="/admin/inspections/:id" element={<ProtectedRoute adminOnly><InspectionDetail /></ProtectedRoute>} />
-        <Route path="/admin/projects" element={<ProtectedRoute adminOnly><Projects /></ProtectedRoute>} />
-        <Route path="/admin/projects/:projectId/floors" element={<ProtectedRoute adminOnly><Floors /></ProtectedRoute>} />
-        <Route path="/admin/trades" element={<ProtectedRoute adminOnly><Trades /></ProtectedRoute>} />
-        <Route path="/admin/trades/:tradeId/checkpoints" element={<ProtectedRoute adminOnly><CheckPoints /></ProtectedRoute>} />
-        <Route path="/admin/elements/:elementId/trades" element={<ProtectedRoute adminOnly><ElementTrades /></ProtectedRoute>} />
-        <Route path="/admin/trades/:tradeId/elements" element={<ProtectedRoute adminOnly><TradeElements /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
+        {/* Admin routes — each requires admin_access + page-specific permission */}
+        <Route path="/admin"                             element={<ProtectedRoute permission="admin_access">    <Dashboard />       </ProtectedRoute>} />
+        <Route path="/admin/inspections"                 element={<ProtectedRoute permission="view_inspections"><Inspections />      </ProtectedRoute>} />
+        <Route path="/admin/inspections/:id"             element={<ProtectedRoute permission="view_inspections"><InspectionDetail /> </ProtectedRoute>} />
+        <Route path="/admin/projects"                    element={<ProtectedRoute permission="view_projects">   <Projects />         </ProtectedRoute>} />
+        <Route path="/admin/projects/:projectId/floors"  element={<ProtectedRoute permission="view_projects">   <Floors />           </ProtectedRoute>} />
+        <Route path="/admin/trades"                      element={<ProtectedRoute permission="view_trades">     <Trades />           </ProtectedRoute>} />
+        <Route path="/admin/trades/:tradeId/checkpoints" element={<ProtectedRoute permission="view_trades">     <CheckPoints />      </ProtectedRoute>} />
+        <Route path="/admin/elements/:elementId/trades"  element={<ProtectedRoute permission="view_trades">     <ElementTrades />    </ProtectedRoute>} />
+        <Route path="/admin/trades/:tradeId/elements"    element={<ProtectedRoute permission="view_trades">     <TradeElements />    </ProtectedRoute>} />
+        <Route path="/admin/users"                       element={<ProtectedRoute permission="manage_users">    <Users />            </ProtectedRoute>} />
+        <Route path="/admin/roles"                       element={<ProtectedRoute permission="manage_roles">    <Roles />            </ProtectedRoute>} />
 
-        {/* User site routes (public - no login required) */}
+        {/* Site flow — requires any site permission (view_sites / submit_forms / upload_photo) */}
         <Route path="/*" element={
-          <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-            <Header theme={theme} toggleTheme={toggleTheme} />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<SelectProject />} />
-                <Route path="/p/:projectId" element={<SelectFloor />} />
-                <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
-                <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
-                <Route path="/p/:projectId/f/:floorId/l/:locationId/t/:tradeId" element={<SelectElementForTrade />} />
-                <Route path="/c/:tradeId" element={<ChecklistForm />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
+          <ProtectedRoute permission="site">
+            <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+              <Header theme={theme} toggleTheme={toggleTheme} />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<SelectProject />} />
+                  <Route path="/p/:projectId" element={<SelectFloor />} />
+                  <Route path="/p/:projectId/f/:floorId" element={<SelectLocation />} />
+                  <Route path="/p/:projectId/f/:floorId/l/:locationId" element={<SelectTrade />} />
+                  <Route path="/p/:projectId/f/:floorId/l/:locationId/t/:tradeId" element={<SelectElementForTrade />} />
+                  <Route path="/c/:tradeId" element={<ChecklistForm />} />
+                </Routes>
+              </main>
+              <Footer />
+            </div>
+          </ProtectedRoute>
         } />
       </Routes>
       </ConfirmProvider>

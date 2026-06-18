@@ -11,6 +11,7 @@ import {
   adminGetElements, adminCreateElement, adminUpdateElement, adminDeleteElement,
   adminGetTrades, adminGetTradeElementsByLocation, adminCreateTradeElement, adminDeleteTradeElement,
 } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 
 const BLANK_FLOOR = { code: '', label: '', order: 0, isProjectLevel: false }
 const BLANK_LOC   = { name: '', type: 'APARTMENT' }
@@ -42,6 +43,8 @@ export default function Floors() {
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
   const confirm = useConfirm()
+  const { hasPermission } = useAuth()
+  const isAdmin = hasPermission('manage_floors')
 
   // Locations
   const [locFloor, setLocFloor]   = useState(null)
@@ -249,7 +252,7 @@ export default function Floors() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Floors</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage floors, locations and works.</p>
           </div>
-          {selProject && (
+          {selProject && isAdmin && (
             <button onClick={openAddFloor} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold shadow-sm transition">
               <Plus className="w-4 h-4" /> Add Floor
             </button>
@@ -297,8 +300,8 @@ export default function Floors() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openLocations(f)} title="Locations" className={`p-1.5 rounded-lg transition-colors ${locFloor?._id === f._id ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-500' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-orange-500'}`}><MapPin className="w-4 h-4" /></button>
-                          <button onClick={() => openEditFloor(f)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => delFloor(f._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          {isAdmin && <button onClick={() => openEditFloor(f)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-4 h-4" /></button>}
+                          {isAdmin && <button onClick={() => delFloor(f._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>}
                         </div>
                       </td>
                     </tr>
@@ -316,9 +319,9 @@ export default function Floors() {
                     <MapPin className="w-4 h-4 text-orange-500" />
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Locations — <span className="text-orange-500">{locFloor.label}</span></span>
                   </div>
-                  <button onClick={() => { setLocForm(BLANK_LOC); setLocModal('add') }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-sm transition">
+                  {isAdmin && <button onClick={() => { setLocForm(BLANK_LOC); setLocModal('add') }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-sm transition">
                     <Plus className="w-3.5 h-3.5" /> Add
-                  </button>
+                  </button>}
                 </div>
                 <table className="min-w-full text-sm">
                   <thead>
@@ -338,8 +341,8 @@ export default function Floors() {
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <button onClick={() => openWorks(l)} title="Works & Checklists" className={`p-1.5 rounded-lg transition-colors ${worksLoc?._id === l._id ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-500' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500'}`}><Briefcase className="w-4 h-4" /></button>
-                            <button onClick={() => { setLocForm({ name: l.name, type: l.type }); setLocModal(l._id) }} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => delLocation(l._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            {isAdmin && <button onClick={() => { setLocForm({ name: l.name, type: l.type }); setLocModal(l._id) }} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-4 h-4" /></button>}
+                            {isAdmin && <button onClick={() => delLocation(l._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>}
                           </div>
                         </td>
                       </tr>
@@ -364,14 +367,14 @@ export default function Floors() {
                 </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500">({Object.keys(groups).length} works)</span>
               </div>
-              <div className="flex items-center gap-2">
+              {isAdmin && (
                 <button
                   onClick={() => { setShowElems(false); setAddingWork(v => !v); setNewTradeId(''); setNewElemIds(new Set()) }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold shadow-sm transition"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Work
                 </button>
-              </div>
+              )}
             </div>
 
             {/* Add Work inline form */}
@@ -528,22 +531,24 @@ export default function Floors() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
-                          <button
-                            onClick={() => { setEditTradeId(isEditing ? null : trade._id); setAssignSel('') }}
-                            title={isEditing ? 'Close' : 'Edit elements'}
-                            className={`p-1.5 rounded-lg transition-colors ${isEditing ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-500' : 'text-gray-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:text-orange-500'}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWork(trade._id)}
-                            title="Remove this work from location"
-                            className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                            <button
+                              onClick={() => { setEditTradeId(isEditing ? null : trade._id); setAssignSel('') }}
+                              title={isEditing ? 'Close' : 'Edit elements'}
+                              className={`p-1.5 rounded-lg transition-colors ${isEditing ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-500' : 'text-gray-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:text-orange-500'}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteWork(trade._id)}
+                              title="Remove this work from location"
+                              className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -568,12 +573,14 @@ export default function Floors() {
                 <div className="border-t border-gray-100 dark:border-gray-700">
                   <div className="px-4 py-2 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
                     <span className="text-xs text-gray-400">Walls, columns, beams, slabs…</span>
-                    <button
-                      onClick={() => { setElemForm(BLANK_ELEM); setElemModal('add') }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition"
-                    >
-                      <Plus className="w-3 h-3" /> Add Element
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => { setElemForm(BLANK_ELEM); setElemModal('add') }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition"
+                      >
+                        <Plus className="w-3 h-3" /> Add Element
+                      </button>
+                    )}
                   </div>
                   <table className="min-w-full text-sm">
                     <thead>
@@ -596,8 +603,8 @@ export default function Floors() {
                           <td className="px-4 py-2.5 text-gray-400">{el.order}</td>
                           <td className="px-4 py-2.5">
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => { setElemForm({ name: el.name, type: el.type, order: el.order }); setElemModal(el._id) }} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => delElement(el._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                              {isAdmin && <button onClick={() => { setElemForm({ name: el.name, type: el.type, order: el.order }); setElemModal(el._id) }} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>}
+                              {isAdmin && <button onClick={() => delElement(el._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
                             </div>
                           </td>
                         </tr>

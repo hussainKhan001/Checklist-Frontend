@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
 import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Pencil, Trash2, CheckSquare, Layers, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -19,6 +20,8 @@ export default function Trades() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const { hasPermission } = useAuth()
+  const isAdmin = hasPermission('manage_trades')
 
   const load = async () => {
     const r = await adminGetTrades()
@@ -71,9 +74,11 @@ export default function Trades() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Trades & Checklists</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{trades.length} trades</p>
           </div>
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-sm shadow-orange-500/30 transition-colors">
-            <Plus className="w-4 h-4" /> Add Trade
-          </button>
+          {isAdmin && (
+            <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-sm shadow-orange-500/30 transition-colors">
+              <Plus className="w-4 h-4" /> Add Trade
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -118,11 +123,11 @@ export default function Trades() {
                           <button onClick={() => navigate(`/admin/trades/${t._id}/checkpoints`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
                             <CheckSquare className="w-3.5 h-3.5" /> Checkpoints
                           </button>
-                          <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Show trade' : 'Hide trade'} className={`p-1.5 rounded-lg transition-colors ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                          {isAdmin && <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>}
+                          {isAdmin && <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Show trade' : 'Hide trade'} className={`p-1.5 rounded-lg transition-colors ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                             {t.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                          </button>
-                          <button onClick={() => del(t._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          </button>}
+                          {isAdmin && <button onClick={() => del(t._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>}
                         </div>
                       </td>
                     </tr>

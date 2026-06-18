@@ -7,6 +7,7 @@ import FormModal from '../../components/ui/FormModal'
 import InputField from '../../components/ui/InputField'
 import Badge from '../../components/ui/Badge'
 import { adminGetProjects, adminCreateProject, adminUpdateProject, adminDeleteProject } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Layers, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -25,6 +26,8 @@ export default function Projects() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const { hasPermission } = useAuth()
+  const isAdmin = hasPermission('manage_projects')
 
   const load = () => adminGetProjects().then(r => setProjects(r.data)).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
@@ -76,11 +79,11 @@ export default function Projects() {
           <button onClick={() => navigate(`/admin/projects/${p._id}/floors`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
             <Layers className="w-3.5 h-3.5" /> Floors
           </button>
-          <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>
-          <button onClick={() => toggleHide(p)} title={p.isHidden ? 'Show project' : 'Hide project'} className={`p-1.5 rounded-lg transition-colors ${p.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+          {isAdmin && <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>}
+          {isAdmin && <button onClick={() => toggleHide(p)} title={p.isHidden ? 'Show project' : 'Hide project'} className={`p-1.5 rounded-lg transition-colors ${p.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
             {p.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          </button>
-          <button onClick={() => del(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
+          </button>}
+          {isAdmin && <button onClick={() => del(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>}
         </div>
       )
     },
@@ -89,7 +92,7 @@ export default function Projects() {
   return (
     <AdminLayout>
       <div className="space-y-5">
-        <PageHeader title="Projects" subtitle={`${projects.length} projects`} onAdd={openAdd} addLabel="Add Project" />
+        <PageHeader title="Projects" subtitle={`${projects.length} projects`} onAdd={isAdmin ? openAdd : undefined} addLabel="Add Project" />
 
         <DataTable columns={columns} data={projects} loading={loading} emptyText="No projects yet." />
 

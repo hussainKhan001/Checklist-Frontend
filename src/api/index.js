@@ -99,3 +99,8 @@ export const adminGetUsers = () => api.get('/admin/users')
 export const adminCreateUser = (data) => api.post('/admin/users', data)
 export const adminUpdateUser = (id, data) => api.put(`/admin/users/${id}`, data)
 export const adminDeleteUser = (id) => api.delete(`/admin/users/${id}`)
+
+export const adminGetRoles = () => api.get('/admin/roles')
+export const adminCreateRole = (data) => api.post('/admin/roles', data)
+export const adminUpdateRole = (id, data) => api.put(`/admin/roles/${id}`, data)
+export const adminDeleteRole = (id) => api.delete(`/admin/roles/${id}`)

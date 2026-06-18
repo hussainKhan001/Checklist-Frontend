@@ -17,7 +17,11 @@ export default function Login() {
     setLoading(true)
     try {
       const user = await login(email, password)
-      navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
+      const perms = user.permissions || []
+      const SITE_PERMS = ['view_sites', 'submit_forms', 'upload_photo']
+      if (perms.includes('admin_access'))          navigate('/admin', { replace: true })
+      else if (perms.some(p => SITE_PERMS.includes(p))) navigate('/', { replace: true })
+      else setError('Your account has no active permissions. Contact your administrator.')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.')
     } finally {

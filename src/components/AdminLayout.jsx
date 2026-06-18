@@ -3,18 +3,26 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, ClipboardList, FolderOpen, Layers, Users,
-  ArrowLeft, LogOut, Menu, ChevronRight, Building2
+  ArrowLeft, LogOut, Menu, ChevronRight, Building2, ShieldCheck
 } from 'lucide-react'
 
-const NAV = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/inspections', label: 'Inspections', icon: ClipboardList },
-  { to: '/admin/projects', label: 'Projects', icon: FolderOpen },
-  { to: '/admin/trades', label: 'Trades & Checklists', icon: Layers },
-  { to: '/admin/users', label: 'Users', icon: Users },
+const ALL_NAV = [
+  { to: '/admin',            label: 'Dashboard',          icon: LayoutDashboard, end: true },                         // visible to all admin_access
+  { to: '/admin/inspections',label: 'Inspections',        icon: ClipboardList,  permission: 'view_inspections' },
+  { to: '/admin/projects',   label: 'Projects',           icon: FolderOpen,     permission: 'view_projects'    },
+  { to: '/admin/trades',     label: 'Trades & Checklists',icon: Layers,         permission: 'view_trades'      },
+  { to: '/admin/users',      label: 'Users',              icon: Users,          permission: 'manage_users'     },
+  { to: '/admin/roles',      label: 'Roles & Permissions',icon: ShieldCheck,    permission: 'manage_roles'     },
 ]
 
+const ROLE_CHIP = {
+  admin:      { label: 'Admin',      cls: 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' },
+  supervisor: { label: 'Supervisor', cls: 'bg-blue-100   dark:bg-blue-500/20   text-blue-600   dark:text-blue-400'   },
+  user:       { label: 'Engineer',   cls: 'bg-gray-100   dark:bg-gray-700      text-gray-500   dark:text-gray-400'   },
+}
+
 function SidebarContent({ collapsed, mobile, onClose, user, onLogout, onNavigate }) {
+  const nav = ALL_NAV.filter(n => !n.permission || user?.permissions?.includes(n.permission))
   return (
     <div className="flex flex-col h-full">
       {/* Brand */}
@@ -37,7 +45,7 @@ function SidebarContent({ collapsed, mobile, onClose, user, onLogout, onNavigate
             Menu
           </div>
         )}
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -81,7 +89,14 @@ function SidebarContent({ collapsed, mobile, onClose, user, onLogout, onNavigate
               {user?.name?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name}</div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name}</div>
+                {user?.role && (
+                  <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${ROLE_CHIP[user.role]?.cls || ROLE_CHIP.user.cls}`}>
+                    {ROLE_CHIP[user.role]?.label || user.role}
+                  </span>
+                )}
+              </div>
               <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{user?.email}</div>
             </div>
             <button

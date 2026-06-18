@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, ArrowLeft, Camera, Eye, EyeOff, Layers } from 'lu
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import { adminGetTrades, adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint, adminGetElement } from '../../api'
+import { useAuth } from '../../context/AuthContext'
 
 const BLANK = { title: '', order: 1, standard: '', howToCheck: '', photoRequired: false }
 
@@ -25,6 +26,9 @@ export default function CheckPoints() {
   const [error, setError] = useState('')
 
   // elementId from URL — when set, we show/manage element-specific checkpoints
+  const { hasPermission } = useAuth()
+  const isAdmin = hasPermission('manage_trades')
+
   const elementId = paramElementId || null
   const [elementCtx, setElementCtx] = useState(null) // { name, type, projectId, floorId, locationId }
 
@@ -110,7 +114,7 @@ export default function CheckPoints() {
             )}
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Define inspection points and acceptance standards.</p>
           </div>
-          {selTrade && (
+          {selTrade && isAdmin && (
             <button
               onClick={openAdd}
               className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold shadow-sm transition"
@@ -182,15 +186,15 @@ export default function CheckPoints() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(cp)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors">
+                        {isAdmin && <button onClick={() => openEdit(cp)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors">
                           <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => toggleHide(cp)} title={cp.isHidden ? 'Show check point' : 'Hide check point'} className={`p-1.5 rounded-lg transition-colors ${cp.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                        </button>}
+                        {isAdmin && <button onClick={() => toggleHide(cp)} title={cp.isHidden ? 'Show check point' : 'Hide check point'} className={`p-1.5 rounded-lg transition-colors ${cp.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                           {cp.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </button>
-                        <button onClick={() => del(cp._id)} title="Delete" className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors">
+                        </button>}
+                        {isAdmin && <button onClick={() => del(cp._id)} title="Delete" className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors">
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

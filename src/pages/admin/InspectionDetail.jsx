@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { adminGetInspection, adminUpdateInspection, adminDeleteInspection } from '../../api'
 import StatusBadge from '../../components/ui/StatusBadge'
+import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { ArrowLeft, Trash2, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -11,6 +12,8 @@ export default function InspectionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const { hasPermission } = useAuth()
+  const isAdmin = hasPermission('manage_inspections')
   const [ins, setIns] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -61,19 +64,23 @@ export default function InspectionDetail() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={ins.status} />
-            <button
-              onClick={toggleStatus}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Mark as {ins.status === 'SUBMITTED' ? 'Draft' : 'Submitted'}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+            {isAdmin && (
+              <button
+                onClick={toggleStatus}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Mark as {ins.status === 'SUBMITTED' ? 'Draft' : 'Submitted'}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+            )}
           </div>
         </div>
 
