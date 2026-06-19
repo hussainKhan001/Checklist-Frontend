@@ -518,6 +518,7 @@ export default function ChecklistForm() {
                   <input
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     className="hidden"
                     disabled={uploadingCps.has(cp._id)}
                     ref={el => fileInputRefs.current[cp._id] = el}
