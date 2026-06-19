@@ -6,7 +6,6 @@ import {
 import {
   PERMISSIONS, PERMISSION_SECTIONS, COLOR_OPTIONS,
   NODE_TYPE_LABELS, NODE_TYPE_STYLES,
-  getRequiredPerms, getDependentPerms,
 } from '../../constants/permissions'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
@@ -49,27 +48,15 @@ function PermissionMatrix({ role, onBack, onSave, myPermissions }) {
 
   const togglePerm = key => {
     if (!canGrant(key)) return
-    if (perms.includes(key)) {
-      const toRemove = new Set([key, ...getDependentPerms(key)])
-      setPerms(p => p.filter(k => !toRemove.has(k)))
-    } else {
-      const toAdd = new Set([key, ...getRequiredPerms(key)])
-      setPerms(p => [...new Set([...p, ...toAdd])])
-    }
+    setPerms(p => p.includes(key) ? p.filter(k => k !== key) : [...p, key])
   }
 
   const toggleSection = sectionKey => {
-    const sec      = PERMISSION_SECTIONS.find(s => s.key === sectionKey)
+    const sec   = PERMISSION_SECTIONS.find(s => s.key === sectionKey)
     if (!sec) return
-    const keys     = sec.permissions.map(p => p.key).filter(canGrant)
-    const allOn    = keys.every(k => perms.includes(k))
-    if (allOn) {
-      const toRemove = new Set(keys.flatMap(k => [k, ...getDependentPerms(k)]))
-      setPerms(p => p.filter(k => !toRemove.has(k)))
-    } else {
-      const toAdd    = new Set(keys.flatMap(k => [k, ...getRequiredPerms(k)]))
-      setPerms(p => [...new Set([...p, ...toAdd])])
-    }
+    const keys  = sec.permissions.map(p => p.key).filter(canGrant)
+    const allOn = keys.every(k => perms.includes(k))
+    setPerms(p => allOn ? p.filter(k => !keys.includes(k)) : [...new Set([...p, ...keys])])
   }
 
   const handleSave = async () => {

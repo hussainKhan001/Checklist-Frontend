@@ -1,10 +1,10 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-const SITE_PERMS = ['view_sites', 'submit_forms', 'upload_photo']
+import { PORTAL_PERMS } from '../constants/permissions'
 
 export default function ProtectedRoute({ children, permission }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -12,30 +12,19 @@ export default function ProtectedRoute({ children, permission }) {
     </div>
   )
 
-  if (!user) return <Navigate to="/login" replace />
+  // Not logged in → save intended URL so login redirects back after sign-in
+  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
 
-  // ── Site flow gate ────────────────────────────────────────────────────────────
-  // Any site permission grants access to the site flow UI.
-  // Users with ONLY admin_access (no site perms) get sent to the admin panel.
-  if (permission === 'site') {
-    const hasSiteAccess = user.permissions?.some(p => SITE_PERMS.includes(p))
-    if (!hasSiteAccess) {
-      return user.permissions?.includes('admin_access')
-        ? <Navigate to="/admin" replace />
-        : <Navigate to="/login" replace />
-    }
-    return children
-  }
+  // ── Portal gate ────────────────────────────────────────────────────────────
+  // Any user with at least one portal permission can access the portal.
+  // Users with only site permissions (view_sites / submit_forms / upload_photo)
+  // are sent back to the public form.
+  const hasPortalAccess = user.permissions?.some(p => PORTAL_PERMS.includes(p))
+  if (!hasPortalAccess) return <Navigate to="/" replace />
 
-  // ── Admin gate ────────────────────────────────────────────────────────────────
-  // Level 1: must have admin_access to enter the panel
-  if (!user.permissions?.includes('admin_access')) {
-    return <Navigate to="/" replace />
-  }
-
-  // Level 2: page-specific permission within the panel
-  if (permission && permission !== 'admin_access' && !user.permissions?.includes(permission)) {
-    return <Navigate to="/admin" replace />
+  // ── Page-specific permission gate ─────────────────────────────────────────
+  if (permission && !user.permissions?.includes(permission)) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return children

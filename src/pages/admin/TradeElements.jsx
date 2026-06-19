@@ -111,7 +111,7 @@ export default function TradeElements() {
       <div className="space-y-6">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
-          <Link to="/admin/trades" className="hover:text-orange-500 transition-colors font-medium">Trades</Link>
+          <Link to="/trades" className="hover:text-orange-500 transition-colors font-medium">Trades</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-gray-600 dark:text-gray-300 font-medium">{trade?.name || '…'} — Eligible Elements</span>
         </nav>

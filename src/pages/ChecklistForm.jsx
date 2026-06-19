@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getProject, getFloor, getLocations, getTrade, getCheckPoints,
   getElements, createInspection, updateInspection, submitInspection,
-  uploadPhoto, getDraftInspection,
+  uploadPhoto, getDraftInspection, getInspections,
 } from '../api'
 import {
   ArrowLeft, ChevronRight, AlertTriangle, Camera, CheckCircle2,
@@ -72,6 +72,7 @@ export default function ChecklistForm() {
   const [draftRestoredAt, setDraftRestoredAt]     = useState(null)
   const [showDraftBanner, setShowDraftBanner]     = useState(false)
   const [uploadingCps, setUploadingCps]           = useState(new Set())
+  const [prevSubmission, setPrevSubmission]       = useState(null) // last SUBMITTED for this wall
 
   // ── Load context data ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function ChecklistForm() {
       .finally(() => setLoading(false))
   }, [projectId, floorId, locationId, tradeId])
 
-  // ── Init: check for today's DRAFT to resume ──────────────────────────────────
+  // ── Init: check for today's DRAFT to resume + any previous SUBMITTED ────────
   const initDraft = async () => {
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -108,8 +109,24 @@ export default function ChecklistForm() {
       params.elementId = elementId
     }
     try {
-      const draftRes = await getDraftInspection(params)
+      // Run both checks in parallel
+      const prevParams = { locationId, tradeId, status: 'SUBMITTED' }
+      if (elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== '') {
+        prevParams.elementId = elementId
+      }
+      const [draftRes, prevRes] = await Promise.all([
+        getDraftInspection(params).catch(() => ({ data: { found: false } })),
+        getInspections(prevParams).catch(() => ({ data: [] })),
+      ])
+
+      // Store most recent submitted inspection for this wall
+      const submitted = Array.isArray(prevRes.data) ? prevRes.data : []
+      if (submitted.length > 0) {
+        setPrevSubmission(submitted[0]) // API returns newest-first
+      }
+
       if (draftRes.data.found) {
+        // Priority 1: today's draft — restore it
         const draft = draftRes.data.inspection
         inspIdRef.current = draft._id
         setInspectionId(draft._id)
@@ -128,6 +145,22 @@ export default function ChecklistForm() {
         setPhotos(restoredPhotos)
         setDraftRestoredAt(draft.updatedAt)
         setShowDraftBanner(true)
+      } else if (submitted.length > 0) {
+        // Priority 2: no draft today — pre-fill from last submission so worker sees previous results
+        const last = submitted[0]
+        const preResults = {}
+        const prePhotos  = {}
+        last.results?.forEach(r => {
+          const cpId = String(r.checkPointId?._id || r.checkPointId || '')
+          if (cpId) {
+            preResults[cpId] = r.result
+            if (r.photos?.length) prePhotos[cpId] = r.photos
+          }
+        })
+        setResults(prev => ({ ...prev, ...preResults }))
+        setPhotos(prePhotos)
+        if (last.workNotes) setWorkNotes(last.workNotes)
+        // inspIdRef stays null — auto-save will create a NEW inspection record
       }
     } catch {
       // Silent — proceed with blank form
@@ -291,6 +324,21 @@ export default function ChecklistForm() {
           {trade?.name}
         </h1>
       </div>
+
+      {/* ── Previously submitted banner ─────────────────────────────────────── */}
+      {prevSubmission && !showDraftBanner && (
+        <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40">
+          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              Pre-filled from last submission · {new Date(prevSubmission.dateOfCheck || prevSubmission.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              Previous results loaded. Review and submit to create a <strong>new</strong> inspection record.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Draft restored banner ────────────────────────────────────────────── */}
       {showDraftBanner && (

@@ -101,6 +101,35 @@ export function getDependentPerms(perm) {
 // ── Legacy group list (kept for any component that still uses it) ─────────────
 export const PERMISSION_GROUPS = [...new Set(PERMISSIONS.map(p => p.group))]
 
+// ── Portal access ─────────────────────────────────────────────────────────────
+// Any user holding at least ONE of these permissions can access the portal.
+// Users with ONLY site permissions (view_sites / submit_forms / upload_photo)
+// cannot access the portal — they only need the public form.
+export const PORTAL_PERMS = [
+  'admin_access', 'view_dashboard',
+  'view_inspections', 'manage_inspections',
+  'view_projects',    'manage_projects', 'manage_floors',
+  'view_trades',      'manage_trades',
+  'manage_users',     'manage_roles',
+]
+
+export const SITE_PERMS = ['view_sites', 'submit_forms', 'upload_photo']
+
+// Returns the best default portal route for a given permissions array.
+export function getPortalRoute(perms = []) {
+  if (perms.includes('admin_access') || perms.includes('view_dashboard'))
+    return '/dashboard'
+  if (perms.some(p => ['view_inspections', 'manage_inspections'].includes(p)))
+    return '/inspections'
+  if (perms.some(p => ['view_projects', 'manage_projects', 'manage_floors'].includes(p)))
+    return '/projects'
+  if (perms.some(p => ['view_trades', 'manage_trades'].includes(p)))
+    return '/trades'
+  if (perms.includes('manage_users'))  return '/users'
+  if (perms.includes('manage_roles'))  return '/roles'
+  return '/dashboard'
+}
+
 // ── UI helpers ────────────────────────────────────────────────────────────────
 export const COLOR_OPTIONS = [
   { value: 'orange', label: 'Orange', cls: 'bg-orange-500' },

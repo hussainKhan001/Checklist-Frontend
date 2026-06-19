@@ -28,8 +28,11 @@ api.interceptors.response.use(
 )
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-export const loginUser = (email, password) => api.post('/auth/login', { email, password })
-export const getMe = () => api.get('/auth/me')
+export const loginUser      = (email, password) => api.post('/auth/login', { email, password })
+export const getMe          = () => api.get('/auth/me')
+export const updateProfile  = (data) => api.patch('/auth/profile', data)
+export const updatePassword = (data) => api.patch('/auth/password', data)
+export const uploadAvatar   = (formData) => api.post('/auth/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 
 // ── Public data (user flow) ───────────────────────────────────────────────────
 export const getProjects = () => api.get('/projects')
@@ -90,7 +93,10 @@ export const adminCreateCheckPoint = (data) => api.post('/admin/checkpoints', da
 export const adminUpdateCheckPoint = (id, data) => api.put(`/admin/checkpoints/${id}`, data)
 export const adminDeleteCheckPoint = (id) => api.delete(`/admin/checkpoints/${id}`)
 
-export const adminGetInspections = (status) => api.get(`/admin/inspections${status ? `?status=${status}` : ''}`)
+export const adminGetInspections = (params = {}) => {
+  const p = typeof params === 'string' ? { status: params } : params
+  return api.get('/admin/inspections', { params: p })
+}
 export const adminGetInspection = (id) => api.get(`/admin/inspections/${id}`)
 export const adminUpdateInspection = (id, data) => api.put(`/admin/inspections/${id}`, data)
 export const adminDeleteInspection = (id) => api.delete(`/admin/inspections/${id}`)

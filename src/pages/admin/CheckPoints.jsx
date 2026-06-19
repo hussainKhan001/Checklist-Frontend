@@ -92,7 +92,7 @@ export default function CheckPoints() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <button
-              onClick={() => elementId ? navigate(`/admin/trades/${selTrade}/elements`) : navigate('/admin/trades')}
+              onClick={() => elementId ? navigate(`/trades/${selTrade}/elements`) : navigate('/trades')}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-orange-500 transition-colors mb-2"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> {elementId ? 'Back to Elements' : 'Back to Trades'}

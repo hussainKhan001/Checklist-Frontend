@@ -76,7 +76,7 @@ export default function Projects() {
       label: 'Actions',
       render: p => (
         <div className="flex items-center gap-1">
-          <button onClick={() => navigate(`/admin/projects/${p._id}/floors`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
+          <button onClick={() => navigate(`/projects/${p._id}/floors`)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors">
             <Layers className="w-3.5 h-3.5" /> Floors
           </button>
           {isAdmin && <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>}

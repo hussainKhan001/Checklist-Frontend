@@ -1,10 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { PORTAL_PERMS, getPortalRoute } from '../constants/permissions'
 import { Sun, Moon, LogOut, ShieldCheck } from 'lucide-react'
 
 export default function Header({ theme, toggleTheme }) {
-  const { user, logout, hasPermission } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  const perms = user?.permissions || []
+  const hasPortal = perms.some(p => PORTAL_PERMS.includes(p))
 
   return (
     <header className="sticky top-0 z-50 mx-2 mt-2 mb-0 rounded-xl
@@ -28,9 +32,9 @@ export default function Header({ theme, toggleTheme }) {
 
         {/* Right */}
         <div className="flex items-center gap-1.5">
-          {hasPermission('admin_access') && (
+          {hasPortal && (
             <Link
-              to="/admin"
+              to={getPortalRoute(perms)}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
                 text-orange-600 dark:text-orange-400
                 bg-orange-50 dark:bg-orange-500/10
@@ -39,7 +43,7 @@ export default function Header({ theme, toggleTheme }) {
                 transition-colors"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              Admin Panel
+              Portal
             </Link>
           )}
 
@@ -50,7 +54,9 @@ export default function Header({ theme, toggleTheme }) {
               </div>
               <div className="hidden sm:block">
                 <div className="text-xs font-semibold text-gray-900 dark:text-white leading-none">{user.name}</div>
-                <div className="text-[10px] text-orange-500 capitalize font-medium mt-0.5">{user.role}</div>
+                <div className="text-[10px] text-orange-500 capitalize font-medium mt-0.5">
+                  {(Array.isArray(user.role) ? user.role : [user.role]).join(', ')}
+                </div>
               </div>
             </div>
           )}

@@ -95,7 +95,7 @@ export default function ElementTrades() {
       <div className="space-y-5">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
-          <Link to="/admin/projects" className="hover:text-orange-500 transition-colors font-medium">Projects</Link>
+          <Link to="/projects" className="hover:text-orange-500 transition-colors font-medium">Projects</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-gray-600 dark:text-gray-300 font-medium">Element Trades</span>
         </nav>
@@ -158,7 +158,7 @@ export default function ElementTrades() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => navigate(`/admin/trades/${t._id}/checkpoints`)}
+                            onClick={() => navigate(`/trades/${t._id}/checkpoints`)}
                             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"
                           >
                             <CheckSquare className="w-3.5 h-3.5" /> Checkpoints

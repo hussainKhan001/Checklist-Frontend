@@ -41,10 +41,12 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updateUser = (updates) => setUser(u => ({ ...u, ...updates }))
+
   const hasPermission = (perm) => !!(user?.permissions?.includes(perm))
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, hasPermission }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, updateUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   )

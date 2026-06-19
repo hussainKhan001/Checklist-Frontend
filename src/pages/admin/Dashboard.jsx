@@ -74,7 +74,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Inspections</h2>
-              <Link to="/admin/inspections" className="flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors">
+              <Link to="/inspections" className="flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors">
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
             </div>

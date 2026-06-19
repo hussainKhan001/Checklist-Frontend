@@ -33,7 +33,7 @@ export default function InspectionDetail() {
     if (!ok) return
     await adminDeleteInspection(id)
     toast.success('Inspection deleted')
-    navigate('/admin/inspections')
+    navigate('/inspections')
   }
 
   if (loading) return <AdminLayout><div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading…</div></AdminLayout>
@@ -49,7 +49,7 @@ export default function InspectionDetail() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <button
-              onClick={() => navigate('/admin/inspections')}
+              onClick={() => navigate('/inspections')}
               className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-orange-500 transition-colors mb-2"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Inspections
