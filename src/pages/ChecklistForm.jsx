@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getProject, getFloor, getLocations, getTrade, getCheckPoints,
   getElements, createInspection, updateInspection, submitInspection,
-  uploadPhoto, getDraftInspection, getInspections,
+  uploadPhoto, getDraftInspection, getInspections, checkDuplicateInspection,
 } from '../api'
 import {
   ArrowLeft, ChevronRight, AlertTriangle, Camera, CheckCircle2,
@@ -63,9 +63,11 @@ export default function ChecklistForm() {
   const fileInputRefs = useRef({})
 
   // Draft / duplicate state
-  const inspIdRef    = useRef(null)
-  const initDoneRef  = useRef(false)
-  const autoSaveTimer = useRef(null)
+  const inspIdRef       = useRef(null)
+  const initDoneRef     = useRef(false)
+  const userEditedRef   = useRef(false) // true only after user makes a real change
+  const preFilledCpIds  = useRef(new Set()) // checkpoint IDs that came from previous submission
+  const autoSaveTimer   = useRef(null)
   const [inspectionId, setInspectionId]           = useState(null)
   const [lastSaved, setLastSaved]                 = useState(null)
   const [isSaving, setIsSaving]                   = useState(false)
@@ -73,6 +75,8 @@ export default function ChecklistForm() {
   const [showDraftBanner, setShowDraftBanner]     = useState(false)
   const [uploadingCps, setUploadingCps]           = useState(new Set())
   const [prevSubmission, setPrevSubmission]       = useState(null) // last SUBMITTED for this wall
+  const [isLockedToday, setIsLockedToday]         = useState(false) // today already submitted → read-only
+  const [isPreFillLocked, setIsPreFillLocked]     = useState(false) // pre-filled from prev → locked until user starts new
 
   // ── Load context data ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -109,57 +113,63 @@ export default function ChecklistForm() {
       params.elementId = elementId
     }
     try {
-      // Run both checks in parallel
+      // Run all checks in parallel
       const prevParams = { locationId, tradeId, status: 'SUBMITTED' }
+      const dupParams  = { locationId, tradeId, date: today }
       if (elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== '') {
         prevParams.elementId = elementId
+        dupParams.elementId  = elementId
       }
-      const [draftRes, prevRes] = await Promise.all([
+      const [draftRes, prevRes, dupRes] = await Promise.all([
         getDraftInspection(params).catch(() => ({ data: { found: false } })),
         getInspections(prevParams).catch(() => ({ data: [] })),
+        checkDuplicateInspection(dupParams).catch(() => ({ data: { exists: false } })),
       ])
 
-      // Store most recent submitted inspection for this wall
-      const submitted = Array.isArray(prevRes.data) ? prevRes.data : []
-      if (submitted.length > 0) {
-        setPrevSubmission(submitted[0]) // API returns newest-first
+      const allSubmitted   = Array.isArray(prevRes.data) ? prevRes.data : []
+      const lastSubmission = allSubmitted[0] // newest (any date), for pre-fill
+      const submittedToday = dupRes.data.exists // server confirmed today's submission exists
+
+      if (lastSubmission) setPrevSubmission(lastSubmission)
+
+      const preloadResults = (src) => {
+        const r = {}; const p = {}
+        src.results?.forEach(item => {
+          const cpId = String(item.checkPointId?._id || item.checkPointId || '')
+          if (cpId) { r[cpId] = item.result; if (item.photos?.length) p[cpId] = item.photos }
+        })
+        return { r, p }
       }
 
       if (draftRes.data.found) {
-        // Priority 1: today's draft — restore it
+        // Priority 1: today's DRAFT — restore it
         const draft = draftRes.data.inspection
         inspIdRef.current = draft._id
         setInspectionId(draft._id)
         setDateOfCheck(draft.dateOfCheck ? draft.dateOfCheck.split('T')[0] : today)
         setWorkNotes(draft.workNotes || '')
-        const restoredResults = {}
-        const restoredPhotos  = {}
-        draft.results?.forEach(r => {
-          const cpId = String(r.checkPointId?._id || r.checkPointId || '')
-          if (cpId) {
-            restoredResults[cpId] = r.result
-            if (r.photos?.length) restoredPhotos[cpId] = r.photos
-          }
-        })
-        setResults(prev => ({ ...prev, ...restoredResults }))
-        setPhotos(restoredPhotos)
+        const { r, p } = preloadResults(draft)
+        setResults(prev => ({ ...prev, ...r }))
+        setPhotos(p)
         setDraftRestoredAt(draft.updatedAt)
         setShowDraftBanner(true)
-      } else if (submitted.length > 0) {
-        // Priority 2: no draft today — pre-fill from last submission so worker sees previous results
-        const last = submitted[0]
-        const preResults = {}
-        const prePhotos  = {}
-        last.results?.forEach(r => {
-          const cpId = String(r.checkPointId?._id || r.checkPointId || '')
-          if (cpId) {
-            preResults[cpId] = r.result
-            if (r.photos?.length) prePhotos[cpId] = r.photos
-          }
-        })
-        setResults(prev => ({ ...prev, ...preResults }))
-        setPhotos(prePhotos)
-        if (last.workNotes) setWorkNotes(last.workNotes)
+      } else if (submittedToday && lastSubmission) {
+        // Priority 2a: already submitted today — pre-fill, lock only filled checkpoints
+        const { r, p } = preloadResults(lastSubmission)
+        setResults(prev => ({ ...prev, ...r }))
+        setPhotos(p)
+        if (lastSubmission.workNotes) setWorkNotes(lastSubmission.workNotes)
+        preFilledCpIds.current = new Set(Object.keys(r).filter(id => r[id] !== 'PENDING'))
+        setIsLockedToday(true)
+      } else if (lastSubmission) {
+        // Priority 2b: not submitted today — pre-fill from last for reference, lock until user starts new
+        const { r, p } = preloadResults(lastSubmission)
+        setResults(prev => ({ ...prev, ...r }))
+        setPhotos(p)
+        if (lastSubmission.workNotes) setWorkNotes(lastSubmission.workNotes)
+        // Record which checkpoint IDs came pre-filled so we lock only those
+        preFilledCpIds.current = new Set(Object.keys(r).filter(id => r[id] !== 'PENDING'))
+        setIsPreFillLocked(true)
         // inspIdRef stays null — auto-save will create a NEW inspection record
       }
     } catch {
@@ -203,16 +213,21 @@ export default function ChecklistForm() {
 
   useEffect(() => {
     if (!initDoneRef.current) return
+    if (!userEditedRef.current) return  // don't save on initial pre-fill
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(saveDraft, 2000)
     return () => clearTimeout(autoSaveTimer.current)
   }, [results, photos, workNotes, dateOfCheck])
 
   // ── Photo upload ─────────────────────────────────────────────────────────────
-  const setResult = (cpId, value) => setResults(prev => ({ ...prev, [cpId]: value }))
+  const setResult = (cpId, value) => {
+    userEditedRef.current = true
+    setResults(prev => ({ ...prev, [cpId]: value }))
+  }
 
   const handlePhotoUpload = async (cpId, file) => {
     if (!file) return
+    userEditedRef.current = true
     setUploadingCps(prev => new Set(prev).add(cpId))
     try {
       const compressed = await compressImage(file)
@@ -325,18 +340,44 @@ export default function ChecklistForm() {
         </h1>
       </div>
 
+      {/* ── Locked: already submitted today ─────────────────────────────────── */}
+      {isLockedToday && (
+        <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/40">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+              Already submitted today — read only
+            </p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+              This inspection has been submitted for today. Come back tomorrow to fill a new one.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Previously submitted banner ─────────────────────────────────────── */}
-      {prevSubmission && !showDraftBanner && (
+      {prevSubmission && !showDraftBanner && !isLockedToday && (
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
               Pre-filled from last submission · {new Date(prevSubmission.dateOfCheck || prevSubmission.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              Previous results loaded. Review and submit to create a <strong>new</strong> inspection record.
+              {isPreFillLocked
+                ? 'Previous data shown for reference. Click "Start New" to begin today\'s inspection.'
+                : 'Previous results loaded. Review and submit to create a new inspection record.'
+              }
             </p>
           </div>
+          {isPreFillLocked && (
+            <button
+              onClick={() => setIsPreFillLocked(false)}
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
+            >
+              Start New
+            </button>
+          )}
         </div>
       )}
 
@@ -391,7 +432,7 @@ export default function ChecklistForm() {
                 type="date"
                 className={inputCls}
                 value={dateOfCheck}
-                onChange={e => setDateOfCheck(e.target.value)}
+                onChange={e => { userEditedRef.current = true; setDateOfCheck(e.target.value) }}
               />
             </div>
           </div>
@@ -480,65 +521,102 @@ export default function ChecklistForm() {
                 </div>
               )}
 
-              <div className="px-4 pb-4 pt-2 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => setResult(cp._id, cpResult === 'OK' ? 'PENDING' : 'OK')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    cpResult === 'OK'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-                  }`}
-                >
-                  <CheckCircle2 className="w-4 h-4" /> OK
-                </button>
-                <button
-                  onClick={() => setResult(cp._id, cpResult === 'NOT_OK' ? 'PENDING' : 'NOT_OK')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    cpResult === 'NOT_OK'
-                      ? 'bg-red-500 text-white shadow-sm'
-                      : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500'
-                  }`}
-                >
-                  <XCircle className="w-4 h-4" /> Not OK
-                </button>
-                <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer transition-all ${
-                  uploadingCps.has(cp._id)
-                    ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500 cursor-wait'
-                    : (photos[cp._id] || []).length > 0
-                      ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                      : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600'
-                }`}>
-                  <Camera className={`w-4 h-4 ${uploadingCps.has(cp._id) ? 'animate-pulse' : ''}`} />
-                  {uploadingCps.has(cp._id)
-                    ? 'Uploading…'
-                    : (photos[cp._id] || []).length > 0
-                      ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
-                      : cp.photoRequired ? 'Add photo (required)' : 'Add photo'
-                  }
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    disabled={uploadingCps.has(cp._id)}
-                    ref={el => fileInputRefs.current[cp._id] = el}
-                    onChange={e => handlePhotoUpload(cp._id, e.target.files[0])}
-                  />
-                </label>
-              </div>
+              {(() => {
+                // Lock only checkpoints that came pre-filled with a result (OK/Not OK)
+                const cpLocked = (isLockedToday || isPreFillLocked) && preFilledCpIds.current.has(String(cp._id))
+                return (
+                  <>
+                    <div className="px-4 pb-4 pt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        disabled={cpLocked}
+                        onClick={() => setResult(cp._id, cpResult === 'OK' ? 'PENDING' : 'OK')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all
+                          disabled:opacity-60 disabled:cursor-not-allowed ${
+                          cpResult === 'OK'
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> OK
+                      </button>
+                      <button
+                        disabled={cpLocked}
+                        onClick={() => setResult(cp._id, cpResult === 'NOT_OK' ? 'PENDING' : 'NOT_OK')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all
+                          disabled:opacity-60 disabled:cursor-not-allowed ${
+                          cpResult === 'NOT_OK'
+                            ? 'bg-red-500 text-white shadow-sm'
+                            : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500'
+                        }`}
+                      >
+                        <XCircle className="w-4 h-4" /> Not OK
+                      </button>
+                      {!cpLocked && (
+                        <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer transition-all ${
+                          uploadingCps.has(cp._id)
+                            ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500 cursor-wait'
+                            : (photos[cp._id] || []).length > 0
+                              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
+                              : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600'
+                        }`}>
+                          <Camera className={`w-4 h-4 ${uploadingCps.has(cp._id) ? 'animate-pulse' : ''}`} />
+                          {uploadingCps.has(cp._id)
+                            ? 'Uploading…'
+                            : (photos[cp._id] || []).length > 0
+                              ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
+                              : cp.photoRequired ? 'Add photo (required)' : 'Add photo'
+                          }
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            disabled={uploadingCps.has(cp._id)}
+                            ref={el => fileInputRefs.current[cp._id] = el}
+                            onChange={e => handlePhotoUpload(cp._id, e.target.files[0])}
+                          />
+                        </label>
+                      )}
+                      {cpLocked && (photos[cp._id] || []).length > 0 && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                          <Camera className="w-4 h-4" />
+                          {photos[cp._id].length} photo{photos[cp._id].length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
 
-              {(photos[cp._id] || []).length > 0 && (
-                <div className="px-4 pb-4 flex flex-wrap gap-2">
-                  {photos[cp._id].map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`checkpoint-${i}`}
-                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                    />
-                  ))}
-                </div>
-              )}
+                    {(photos[cp._id] || []).length > 0 && (
+                      <div className="px-4 pb-4 flex flex-wrap gap-2">
+                        {photos[cp._id].map((url, i) => (
+                          <div key={i} className="relative">
+                            <img
+                              src={url}
+                              alt={`checkpoint-${i}`}
+                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                            />
+                            {!submitted && !cpLocked && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  userEditedRef.current = true
+                                  setPhotos(prev => ({
+                                    ...prev,
+                                    [cp._id]: prev[cp._id].filter((_, idx) => idx !== i),
+                                  }))
+                                }}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center
+                                  rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-md"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )
         })}

@@ -26,7 +26,7 @@ const STATUS_SUMMARY = {
   NA:          { text: 'Not assigned to this room',        color: 'text-gray-400'                          },
 }
 
-const AUTO_REFRESH_MS = 30_000
+const AUTO_REFRESH_MS = 10_000
 
 function useRelativeTime(ts) {
   const [label, setLabel] = useState('')
