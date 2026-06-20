@@ -26,6 +26,7 @@ import TradeElements from './pages/admin/TradeElements'
 import Users from './pages/admin/Users'
 import Roles from './pages/admin/Roles'
 import ChecklistMatrix from './pages/admin/ChecklistMatrix'
+import SiteProgress from './pages/admin/SiteProgress'
 import Profile from './pages/admin/Profile'
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/inspections"                       element={<ProtectedRoute permission="view_inspections">         <Inspections />     </ProtectedRoute>} />
           <Route path="/inspections/:id"                   element={<ProtectedRoute permission="view_inspections">         <InspectionDetail /></ProtectedRoute>} />
           <Route path="/checklist"                         element={<ProtectedRoute permission="view_inspections">         <ChecklistMatrix /> </ProtectedRoute>} />
+          <Route path="/progress"                          element={<ProtectedRoute permission="view_inspections">         <SiteProgress />    </ProtectedRoute>} />
           <Route path="/projects"                          element={<ProtectedRoute permission="view_projects">            <Projects />        </ProtectedRoute>} />
           <Route path="/projects/:projectId/floors"        element={<ProtectedRoute permission="view_projects">            <Floors />          </ProtectedRoute>} />
           <Route path="/trades"                            element={<ProtectedRoute permission="view_trades">              <Trades />          </ProtectedRoute>} />

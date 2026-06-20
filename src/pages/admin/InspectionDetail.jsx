@@ -85,18 +85,29 @@ export default function InspectionDetail() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Date', value: new Date(ins.dateOfCheck).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) },
+            { label: 'Inspection Date', value: new Date(ins.dateOfCheck).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) },
+            {
+              label: 'Submitted At',
+              value: ins.submittedAt
+                ? new Date(ins.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                : '—',
+              sub: ins.submittedAt
+                ? new Date(ins.submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+                : null,
+              cls: ins.submittedAt ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400',
+            },
             { label: 'Contractor', value: ins.contractorAgency || '—' },
             { label: 'Site Engineer', value: ins.checkedBy || '—' },
             { label: 'OK', value: resultCount.OK, cls: 'text-emerald-600 dark:text-emerald-400' },
             { label: 'Not OK', value: resultCount.NOT_OK, cls: 'text-red-600 dark:text-red-400' },
             { label: 'Pending', value: resultCount.PENDING, cls: 'text-amber-600 dark:text-amber-400' },
-          ].map(({ label, value, cls }) => (
+          ].map(({ label, value, sub, cls }) => (
             <div key={label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-sm">
               <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-1">{label}</div>
               <div className={`text-sm font-bold ${cls || 'text-gray-900 dark:text-white'}`}>{value}</div>
+              {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
             </div>
           ))}
         </div>

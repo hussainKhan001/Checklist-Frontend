@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, ClipboardList, FolderOpen, Layers, Users,
   ArrowLeft, LogOut, Menu, Building2, ShieldCheck, LayoutGrid,
-  Sun, Moon, ExternalLink
+  Sun, Moon, ExternalLink, TrendingUp,
 } from 'lucide-react'
 
 const ALL_NAV = [
   { to: '/dashboard',   label: 'Dashboard',          icon: LayoutDashboard, end: true },
   { to: '/inspections', label: 'Inspections',        icon: ClipboardList,   permission: 'view_inspections' },
   { to: '/checklist',   label: 'Checklist Matrix',   icon: LayoutGrid,      permission: 'view_inspections' },
+  { to: '/progress',    label: 'Site Progress',      icon: TrendingUp,      permission: 'view_inspections' },
   { to: '/projects',    label: 'Projects',           icon: FolderOpen,      permission: 'view_projects'    },
   { to: '/trades',      label: 'Trades & Checklists',icon: Layers,          permission: 'view_trades'      },
   { to: '/users',       label: 'Users',              icon: Users,           permission: 'manage_users'     },

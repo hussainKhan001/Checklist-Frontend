@@ -452,6 +452,15 @@ export default function ChecklistMatrix() {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [loadMatrix])
 
+  useEffect(() => {
+    let ch
+    try {
+      ch = new BroadcastChannel('nqc-inspections')
+      ch.onmessage = () => loadMatrix(undefined, undefined, true)
+    } catch {}
+    return () => { try { ch?.close() } catch {} }
+  }, [loadMatrix])
+
   const projectName = projects.find(p => p._id === selProject)?.name || ''
   const floorLabel  = floors.find(f => f._id === selFloor)?.label   || ''
 

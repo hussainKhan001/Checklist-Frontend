@@ -112,3 +112,13 @@ export const adminGetRoles = () => api.get('/admin/roles')
 export const adminCreateRole = (data) => api.post('/admin/roles', data)
 export const adminUpdateRole = (id, data) => api.put(`/admin/roles/${id}`, data)
 export const adminDeleteRole = (id) => api.delete(`/admin/roles/${id}`)
+
+// ── Site Progress ─────────────────────────────────────────────────────────────
+export const adminGetProgressSummary  = (projectId) => api.get('/admin/progress/summary',  { params: { projectId, _t: Date.now() } })
+export const adminGetProgressPlans    = (projectId) => api.get('/admin/progress/plans',    { params: { projectId } })
+export const adminUpsertProgressPlan  = (data)      => api.put('/admin/progress/plans', data)
+export const adminDeleteProgressPlan  = (id)        => api.delete(`/admin/progress/plans/${id}`)
+export const adminGetMilestones       = (projectId) => api.get('/admin/progress/milestones', { params: { projectId } })
+export const adminCreateMilestone     = (data)      => api.post('/admin/progress/milestones', data)
+export const adminUpdateMilestone     = (id, data)  => api.put(`/admin/progress/milestones/${id}`, data)
+export const adminDeleteMilestone     = (id)        => api.delete(`/admin/progress/milestones/${id}`)

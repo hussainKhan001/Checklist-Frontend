@@ -1,16 +1,21 @@
-import { Fragment, useEffect, useState, useMemo } from 'react'
+import { Fragment, useCallback, useEffect, useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { adminGetInspections, adminDeleteInspection } from '../../api'
 import StatusBadge from '../../components/ui/StatusBadge'
+import Dropdown from '../../components/ui/Dropdown'
+import DatePicker from '../../components/ui/DatePicker'
 import { useConfirm } from '../../context/ConfirmContext'
 import { useAuth } from '../../context/AuthContext'
-import { Search, Trash2, ChevronUp, ClipboardList, X, SlidersHorizontal } from 'lucide-react'
+import {
+  Search, Trash2, ChevronDown, ChevronRight, ClipboardList,
+  X, Building2, Layers, DoorOpen, Columns, LayoutGrid,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
 const fmtDate     = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'
-const fmtTime     = (d) => d ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'
-const fmtDateTime = (d) => d ? `${fmtDate(d)}, ${fmtTime(d)}` : '—'
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '—'
 
 const EVENT_CONFIG = {
   DRAFT_CREATED:  { color: 'bg-blue-400',   label: 'Draft created',  textColor: 'text-blue-600 dark:text-blue-400' },
@@ -19,75 +24,80 @@ const EVENT_CONFIG = {
 }
 
 function InspectionTimeline({ inspection }) {
-  const okCount      = inspection.results?.filter(r => r.result === 'OK').length     || 0
-  const notOkCount   = inspection.results?.filter(r => r.result === 'NOT_OK').length || 0
-  const pendingCount = inspection.results?.filter(r => r.result === 'PENDING').length || 0
-  const timeline     = inspection.timeline || []
-
+  const ok      = inspection.results?.filter(r => r.result === 'OK').length     || 0
+  const notOk   = inspection.results?.filter(r => r.result === 'NOT_OK').length || 0
+  const pending = inspection.results?.filter(r => r.result === 'PENDING').length || 0
+  const tl      = inspection.timeline || []
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
+    <div className="flex flex-col sm:flex-row gap-4 py-1">
       <div className="sm:w-40 flex sm:flex-col gap-1.5 flex-wrap">
         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5 w-full">Checkpoints</span>
-        {okCount > 0      && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">{okCount} OK</span>}
-        {notOkCount > 0   && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-400">{notOkCount} Not OK</span>}
-        {pendingCount > 0 && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400">{pendingCount} Pending</span>}
-        {inspection.workNotes && (
-          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic">"{inspection.workNotes}"</div>
-        )}
+        {ok > 0      && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">{ok} OK</span>}
+        {notOk > 0   && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-400">{notOk} Not OK</span>}
+        {pending > 0 && <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400">{pending} Pending</span>}
+        {inspection.workNotes && <p className="mt-1 text-xs text-gray-500 italic">"{inspection.workNotes}"</p>}
       </div>
       <div className="flex-1">
         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">Timeline</span>
-        {timeline.length === 0 ? (
-          <p className="text-xs text-gray-400">No timeline events.</p>
+        {tl.length === 0 ? (
+          <p className="text-xs text-gray-400">No events.</p>
         ) : (
           <div className="relative pl-4">
             <div className="absolute left-1.5 top-1 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
-            {timeline.map((item, idx) => {
+            {tl.map((item, i) => {
               const cfg = EVENT_CONFIG[item.event]
               if (!cfg) return null
               return (
-                <div key={idx} className="relative mb-2.5 last:mb-0">
+                <div key={i} className="relative mb-2.5 last:mb-0">
                   <div className={`absolute -left-2.5 top-1 w-2 h-2 rounded-full ${cfg.color}`} />
                   <p className={`text-xs font-semibold ${cfg.textColor}`}>{cfg.label}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDateTime(item.timestamp)}</p>
-                  {item.details && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{item.details}</p>}
+                  <p className="text-[10px] text-gray-400">{fmtDateTime(item.timestamp)}</p>
+                  {item.details && <p className="text-[10px] text-gray-400 mt-0.5">{item.details}</p>}
                 </div>
               )
             })}
           </div>
         )}
-        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500">Last edited: {fmtDateTime(inspection.updatedAt)}</p>
-        </div>
+        <p className="text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+          Last edited: {fmtDateTime(inspection.updatedAt)}
+        </p>
       </div>
     </div>
   )
 }
 
-const selCls = 'w-full appearance-none pl-3 pr-7 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed'
+function SummaryPills({ items }) {
+  const sub   = items.filter(i => i.status === 'SUBMITTED').length
+  const draft = items.filter(i => i.status === 'DRAFT').length
+  return (
+    <div className="flex items-center gap-1.5 ml-1">
+      <span className="text-[10px] text-gray-400">{items.length}</span>
+      {sub   > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{sub}✓</span>}
+      {draft > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">{draft}●</span>}
+    </div>
+  )
+}
 
+// ── Main ───────────────────────────────────────────────────────────────────────
 export default function Inspections() {
   const [inspections,  setInspections]  = useState([])
   const [loading,      setLoading]      = useState(true)
+  const [selectedNode, setSelectedNode] = useState(null)
+  const [treeOpen,     setTreeOpen]     = useState({ p: new Set(), f: new Set() })
   const [expandedRows, setExpandedRows] = useState(new Set())
+  const [treeSearch,   setTreeSearch]   = useState('')
 
-  // All filter state lives in the URL — survives navigation + back button
   const [urlParams, setUrlParams] = useSearchParams()
-  const navigate    = useNavigate()
-  const confirm     = useConfirm()
+  const navigate  = useNavigate()
+  const confirm   = useConfirm()
   const { hasPermission } = useAuth()
-  const canManage   = hasPermission('manage_inspections')
+  const canManage = hasPermission('manage_inspections')
 
   const statusFilter = urlParams.get('status')   || ''
   const search       = urlParams.get('q')        || ''
-  const fProject     = urlParams.get('project')  || ''
-  const fFloor       = urlParams.get('floor')    || ''
-  const fRoom        = urlParams.get('room')     || ''
-  const fWall        = urlParams.get('wall')     || ''
   const fTrade       = urlParams.get('trade')    || ''
   const fDateFrom    = urlParams.get('dateFrom') || ''
   const fDateTo      = urlParams.get('dateTo')   || ''
-  const showFilters  = urlParams.get('filters') === '1'
 
   const patch = (changes) => setUrlParams(prev => {
     const next = new URLSearchParams(prev)
@@ -95,81 +105,124 @@ export default function Inspections() {
     return next
   }, { replace: true })
 
-  useEffect(() => {
+  const loadInspections = useCallback(() => {
     setLoading(true)
     adminGetInspections(statusFilter).then(r => setInspections(r.data)).finally(() => setLoading(false))
   }, [statusFilter])
 
-  const handleProject = (v) => patch({ project: v, floor: '', room: '', wall: '' })
-  const handleFloor   = (v) => patch({ floor: v, room: '', wall: '' })
-  const handleRoom    = (v) => patch({ room: v, wall: '' })
+  useEffect(() => { loadInspections() }, [loadInspections])
 
-  const activeCount = [fProject, fFloor, fRoom, fWall, fTrade, fDateFrom, fDateTo].filter(Boolean).length
-  const clearAll    = () => patch({ project: '', floor: '', room: '', wall: '', trade: '', q: '', dateFrom: '', dateTo: '' })
+  useEffect(() => {
+    let ch
+    try {
+      ch = new BroadcastChannel('nqc-inspections')
+      ch.onmessage = () => loadInspections()
+    } catch {}
+    return () => { try { ch?.close() } catch {} }
+  }, [loadInspections])
 
-  // ── Derive unique options from loaded data ───────────────────────────────────
-  const projectOpts = useMemo(() => {
-    const map = {}
-    inspections.forEach(i => { if (i.projectId) map[i.projectId._id] = i.projectId.name })
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  // ── Left tree (all inspections, unfiltered) ────────────────────────────────
+  const tree = useMemo(() => {
+    const projects = {}
+    inspections.forEach(i => {
+      const pid = i.projectId?._id  || 'unknown'
+      const fid = i.floorId?._id    || 'unknown'
+      const rid = i.locationId?._id || 'unknown'
+      if (!projects[pid]) projects[pid] = { id: pid, name: i.projectId?.name || '?', floors: {} }
+      const p = projects[pid]
+      if (!p.floors[fid]) p.floors[fid] = { id: fid, name: i.floorId?.label || '?', rooms: {} }
+      const f = p.floors[fid]
+      if (!f.rooms[rid]) f.rooms[rid] = { id: rid, name: i.locationId?.name || '?', count: 0, sub: 0, draft: 0 }
+      f.rooms[rid].count++
+      if (i.status === 'SUBMITTED') f.rooms[rid].sub++
+      if (i.status === 'DRAFT')     f.rooms[rid].draft++
+    })
+    return Object.values(projects).sort((a, b) => a.name.localeCompare(b.name)).map(p => {
+      const floors = Object.values(p.floors).sort((a, b) => a.name.localeCompare(b.name)).map(f => {
+        const rooms = Object.values(f.rooms).sort((a, b) => a.name.localeCompare(b.name))
+        return {
+          ...f, rooms,
+          count: rooms.reduce((s, r) => s + r.count, 0),
+          sub:   rooms.reduce((s, r) => s + r.sub, 0),
+          draft: rooms.reduce((s, r) => s + r.draft, 0),
+        }
+      })
+      return {
+        ...p, floors,
+        count: floors.reduce((s, f) => s + f.count, 0),
+        sub:   floors.reduce((s, f) => s + f.sub, 0),
+        draft: floors.reduce((s, f) => s + f.draft, 0),
+      }
+    })
   }, [inspections])
 
-  const floorOpts = useMemo(() => {
-    const map = {}
-    inspections
-      .filter(i => !fProject || i.projectId?._id === fProject)
-      .forEach(i => { if (i.floorId) map[i.floorId._id] = i.floorId.label })
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [inspections, fProject])
-
-  const roomOpts = useMemo(() => {
-    const map = {}
-    inspections
-      .filter(i => (!fProject || i.projectId?._id === fProject) && (!fFloor || i.floorId?._id === fFloor))
-      .forEach(i => { if (i.locationId) map[i.locationId._id] = i.locationId.name })
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [inspections, fProject, fFloor])
-
-  const wallOpts = useMemo(() => {
-    const map = {}
-    inspections
-      .filter(i =>
-        (!fProject || i.projectId?._id === fProject) &&
-        (!fFloor   || i.floorId?._id   === fFloor)   &&
-        (!fRoom    || i.locationId?._id === fRoom)
-      )
-      .forEach(i => { if (i.elementId) map[i.elementId._id] = i.elementId.name })
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [inspections, fProject, fFloor, fRoom])
-
+  // ── Trade options for dropdown ─────────────────────────────────────────────
   const tradeOpts = useMemo(() => {
     const map = {}
     inspections.forEach(i => { if (i.tradeId) map[i.tradeId._id] = i.tradeId.name })
     return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
   }, [inspections])
 
-  // ── Apply filters ────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => inspections.filter(i => {
-    const q = search.toLowerCase()
-    if (q && !(
-      i.projectId?.name?.toLowerCase().includes(q)  ||
-      i.tradeId?.name?.toLowerCase().includes(q)    ||
-      i.locationId?.name?.toLowerCase().includes(q) ||
-      i.elementId?.name?.toLowerCase().includes(q)  ||
-      i.checkedBy?.toLowerCase().includes(q)
-    )) return false
-    if (fProject && i.projectId?._id !== fProject)  return false
-    if (fFloor   && i.floorId?._id   !== fFloor)    return false
-    if (fRoom    && i.locationId?._id !== fRoom)     return false
-    if (fWall    && i.elementId?._id  !== fWall)     return false
-    if (fTrade   && i.tradeId?._id    !== fTrade)    return false
+  // ── Right panel items ──────────────────────────────────────────────────────
+  const panelItems = useMemo(() => inspections.filter(i => {
+    if (selectedNode?.type === 'project' && i.projectId?._id  !== selectedNode.id) return false
+    if (selectedNode?.type === 'floor'   && i.floorId?._id    !== selectedNode.id) return false
+    if (selectedNode?.type === 'room'    && i.locationId?._id !== selectedNode.id) return false
+    if (fTrade && i.tradeId?._id !== fTrade) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!(
+        i.tradeId?.name?.toLowerCase().includes(q)    ||
+        i.elementId?.name?.toLowerCase().includes(q)  ||
+        i.checkedBy?.toLowerCase().includes(q)
+      )) return false
+    }
     if (fDateFrom || fDateTo) {
       const d = i.dateOfCheck ? new Date(i.dateOfCheck).toISOString().slice(0, 10) : ''
       if (fDateFrom && d < fDateFrom) return false
       if (fDateTo   && d > fDateTo)   return false
     }
     return true
-  }), [inspections, search, fProject, fFloor, fRoom, fWall, fTrade, fDateFrom, fDateTo])
+  }), [inspections, selectedNode, fTrade, search, fDateFrom, fDateTo])
+
+  // ── Group right panel based on selected level ──────────────────────────────
+  const panelGrouped = useMemo(() => {
+    if (!selectedNode || selectedNode.type === 'room') return { type: 'flat', items: panelItems }
+    if (selectedNode.type === 'floor') {
+      const rooms = {}
+      panelItems.forEach(i => {
+        const rid = i.locationId?._id || 'unknown'
+        if (!rooms[rid]) rooms[rid] = { id: rid, name: i.locationId?.name || '—', items: [] }
+        rooms[rid].items.push(i)
+      })
+      return { type: 'byRoom', rooms: Object.values(rooms) }
+    }
+    const floors = {}
+    panelItems.forEach(i => {
+      const fid = i.floorId?._id    || 'unknown'
+      const rid = i.locationId?._id || 'unknown'
+      if (!floors[fid]) floors[fid] = { id: fid, name: i.floorId?.label || '—', rooms: {} }
+      if (!floors[fid].rooms[rid]) floors[fid].rooms[rid] = { id: rid, name: i.locationId?.name || '—', items: [] }
+      floors[fid].rooms[rid].items.push(i)
+    })
+    return { type: 'byFloorRoom', floors: Object.values(floors).map(f => ({ ...f, rooms: Object.values(f.rooms) })) }
+  }, [panelItems, selectedNode])
+
+  const toggleTree = (level, id) => setTreeOpen(prev => {
+    const s = new Set(prev[level])
+    s.has(id) ? s.delete(id) : s.add(id)
+    return { ...prev, [level]: s }
+  })
+
+  const selectNode = (node) =>
+    setSelectedNode(prev => prev?.type === node.type && prev?.id === node.id ? null : node)
+
+  const isSel = (type, id) => selectedNode?.type === type && selectedNode?.id === id
+
+  const toggleRow = (id, e) => {
+    e.stopPropagation()
+    setExpandedRows(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
 
   const handleDelete = async (id, e) => {
     e.stopPropagation()
@@ -180,251 +233,351 @@ export default function Inspections() {
     toast.success('Inspection deleted')
   }
 
-  const toggleRow = (id, e) => {
-    e.stopPropagation()
-    setExpandedRows(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+  const breadcrumb = selectedNode
+    ? [selectedNode.projectName, selectedNode.floorName, selectedNode.roomName].filter(Boolean)
+    : ['All Inspections']
+
+  const hasFilters = !!(fTrade || fDateFrom || fDateTo || search)
+
+  // ── Inspection row ─────────────────────────────────────────────────────────
+  function InspRow({ ins }) {
+    const ok    = ins.results?.filter(r => r.result === 'OK').length || 0
+    const total = ins.results?.length || 0
+    const pct   = total > 0 ? Math.round((ok / total) * 100) : 0
+    const exp   = expandedRows.has(ins._id)
+    return (
+      <Fragment>
+        <div
+          onClick={() => navigate(`/inspections/${ins._id}`)}
+          className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50/40 dark:hover:bg-orange-500/5 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-700/20 last:border-0"
+        >
+          <div className="flex items-center gap-1.5 w-20 flex-shrink-0">
+            <Columns className="w-3 h-3 text-gray-300 flex-shrink-0" />
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 truncate">{ins.elementId?.name || '—'}</span>
+          </div>
+          <span className="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate min-w-0">{ins.tradeId?.name || '—'}</span>
+          <span className="text-xs text-gray-400 whitespace-nowrap w-14 text-center flex-shrink-0">{fmtDate(ins.dateOfCheck)}</span>
+          <span className="text-xs text-gray-400 w-24 truncate hidden md:block flex-shrink-0">{ins.checkedBy || '—'}</span>
+          <div className="flex items-center gap-1.5 w-24 flex-shrink-0">
+            <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-[10px] text-gray-400 whitespace-nowrap w-8 text-right">{ok}/{total}</span>
+          </div>
+          <div className="w-24 flex justify-center flex-shrink-0">
+            <StatusBadge status={ins.status} />
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={e => toggleRow(ins._id, e)}
+              className={`p-1.5 rounded-lg transition-colors ${exp ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500' : 'text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500'}`}
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+            </button>
+            {canManage && (
+              <button
+                onClick={e => handleDelete(ins._id, e)}
+                className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        {exp && (
+          <div className="px-4 pb-4 pt-2 bg-blue-50/40 dark:bg-blue-500/5 border-b border-blue-100 dark:border-blue-500/20">
+            <InspectionTimeline inspection={ins} />
+          </div>
+        )}
+      </Fragment>
+    )
   }
 
+  // ── Right panel content ────────────────────────────────────────────────────
+  function RightContent() {
+    if (loading) return <div className="flex items-center justify-center h-40 text-sm text-gray-400">Loading…</div>
+    if (!panelItems.length) return (
+      <div className="flex flex-col items-center justify-center h-40 text-sm text-gray-400 gap-2">
+        <ClipboardList className="w-8 h-8 opacity-30" />
+        {selectedNode ? 'No inspections for this selection.' : 'Select a location from the left panel.'}
+      </div>
+    )
+    if (panelGrouped.type === 'flat') return <div>{panelGrouped.items.map(i => <InspRow key={i._id} ins={i} />)}</div>
+    if (panelGrouped.type === 'byRoom') return (
+      <div>
+        {panelGrouped.rooms.map(room => (
+          <div key={room.id}>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-10">
+              <DoorOpen className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">{room.name}</span>
+              <SummaryPills items={room.items} />
+            </div>
+            {room.items.map(i => <InspRow key={i._id} ins={i} />)}
+          </div>
+        ))}
+      </div>
+    )
+    return (
+      <div>
+        {panelGrouped.floors.map(floor => (
+          <div key={floor.id}>
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
+              <Layers className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{floor.name}</span>
+            </div>
+            {floor.rooms.map(room => (
+              <div key={room.id}>
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700 sticky top-9 z-10">
+                  <DoorOpen className="w-3 h-3 text-orange-400" />
+                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">{room.name}</span>
+                  <SummaryPills items={room.items} />
+                </div>
+                {room.items.map(i => <InspRow key={i._id} ins={i} />)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AdminLayout>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Inspections</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {filtered.length} of {inspections.length} records
-            </p>
+      <div
+        className="-m-4 sm:-m-6 lg:-m-8 flex overflow-hidden"
+        style={{ height: 'calc(100vh - 64px)' }}
+      >
+        {/* ─── LEFT: Navigation tree ─────────────────────────────────────────── */}
+        <div className="w-64 xl:w-72 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50/80 dark:bg-gray-900/60 flex-shrink-0">
+          {/* Tree search */}
+          <div className="p-2.5 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-orange-500/30 focus:border-orange-400 transition-colors"
+                placeholder="Filter locations…"
+                value={treeSearch}
+                onChange={e => setTreeSearch(e.target.value)}
+              />
+              {treeSearch && (
+                <button onClick={() => setTreeSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
-          {activeCount > 0 && (
-            <button onClick={clearAll} className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-600 font-medium transition-colors">
-              <X className="w-3.5 h-3.5" /> Clear filters
-            </button>
-          )}
+
+          {/* All */}
+          <button
+            onClick={() => setSelectedNode(null)}
+            className={`flex items-center gap-2 px-3 py-2.5 text-xs font-bold transition-colors border-b border-gray-100 dark:border-gray-700/60 ${
+              !selectedNode
+                ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-500'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            All Inspections
+            <span className="ml-auto text-[10px] font-normal text-gray-400">{inspections.length}</span>
+          </button>
+
+          {/* Tree body */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="px-3 py-8 text-xs text-gray-400 text-center">Loading…</div>
+            ) : tree
+              .filter(p => {
+                if (!treeSearch) return true
+                const q = treeSearch.toLowerCase()
+                return (
+                  p.name.toLowerCase().includes(q) ||
+                  p.floors.some(f => f.name.toLowerCase().includes(q) || f.rooms.some(r => r.name.toLowerCase().includes(q)))
+                )
+              })
+              .map(project => {
+                const pOpen = !treeOpen.p.has(project.id)
+                return (
+                  <div key={project.id}>
+                    {/* Project */}
+                    <div className={`flex items-center transition-colors ${isSel('project', project.id) ? 'bg-orange-50 dark:bg-orange-500/10' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                      <button onClick={() => toggleTree('p', project.id)} className="p-1.5 pl-2 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                        {pOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      </button>
+                      <button
+                        onClick={() => selectNode({ type: 'project', id: project.id, projectName: project.name })}
+                        className="flex items-center gap-1.5 flex-1 min-w-0 pr-2 py-1.5 text-left"
+                      >
+                        <Building2 className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                        <span className={`text-xs font-bold truncate ${isSel('project', project.id) ? 'text-orange-500' : 'text-gray-700 dark:text-gray-200'}`}>{project.name}</span>
+                        <span className="ml-auto text-[10px] text-gray-400 flex-shrink-0">{project.count}</span>
+                      </button>
+                    </div>
+
+                    {pOpen && project.floors
+                      .filter(f => {
+                        if (!treeSearch) return true
+                        const q = treeSearch.toLowerCase()
+                        return f.name.toLowerCase().includes(q) || f.rooms.some(r => r.name.toLowerCase().includes(q))
+                      })
+                      .map(floor => {
+                        const fKey  = `${project.id}:${floor.id}`
+                        const fOpen = !treeOpen.f.has(fKey)
+                        return (
+                          <div key={floor.id}>
+                            {/* Floor */}
+                            <div className={`flex items-center transition-colors ${isSel('floor', floor.id) ? 'bg-orange-50 dark:bg-orange-500/10' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+                              <button onClick={() => toggleTree('f', fKey)} className="p-1.5 pl-5 text-gray-300 hover:text-gray-500 flex-shrink-0">
+                                {fOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                              </button>
+                              <button
+                                onClick={() => selectNode({ type: 'floor', id: floor.id, projectName: project.name, floorName: floor.name })}
+                                className="flex items-center gap-1.5 flex-1 min-w-0 pr-2 py-1 text-left"
+                              >
+                                <Layers className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                                <span className={`text-xs truncate ${isSel('floor', floor.id) ? 'text-orange-500 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}>{floor.name}</span>
+                                <span className="ml-auto text-[10px] text-gray-400 flex-shrink-0">{floor.count}</span>
+                              </button>
+                            </div>
+
+                            {fOpen && floor.rooms
+                              .filter(r => !treeSearch || r.name.toLowerCase().includes(treeSearch.toLowerCase()))
+                              .map(room => (
+                                <button
+                                  key={room.id}
+                                  onClick={() => selectNode({ type: 'room', id: room.id, projectName: project.name, floorName: floor.name, roomName: room.name })}
+                                  className={`w-full flex items-center gap-1.5 pl-10 pr-2 py-1.5 transition-colors ${isSel('room', room.id) ? 'bg-orange-100 dark:bg-orange-500/15' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                >
+                                  <DoorOpen className="w-3 h-3 text-orange-300 flex-shrink-0" />
+                                  <span className={`text-xs truncate ${isSel('room', room.id) ? 'text-orange-600 dark:text-orange-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>{room.name}</span>
+                                  <div className="ml-auto flex items-center gap-1 flex-shrink-0 text-[9px] font-bold">
+                                    {room.sub   > 0 && <span className="text-emerald-500">{room.sub}✓</span>}
+                                    {room.draft > 0 && <span className="text-amber-500">{room.draft}●</span>}
+                                  </div>
+                                </button>
+                              ))
+                            }
+                          </div>
+                        )
+                      })
+                    }
+                  </div>
+                )
+              })
+            }
+          </div>
         </div>
 
-        {/* Row 1: Search + Status toggle + Filter toggle */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors"
-              placeholder="Search project, trade, room, wall, engineer…"
-              value={search}
-              onChange={e => patch({ q: e.target.value })}
-            />
-          </div>
+        {/* ─── RIGHT: Content panel ──────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
 
-          <div className="flex gap-2">
-            {/* Status toggle */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              {['', 'SUBMITTED', 'DRAFT'].map(s => (
+          {/* Header row 1: breadcrumb + status tabs */}
+          <div className="px-4 pt-3 pb-2 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3 flex-shrink-0">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              {breadcrumb.map((crumb, i) => (
+                <Fragment key={i}>
+                  {i > 0 && <ChevronRight className="w-3 h-3 text-gray-300 flex-shrink-0" />}
+                  <span className={`text-sm truncate ${i === breadcrumb.length - 1 ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-400'}`}>{crumb}</span>
+                </Fragment>
+              ))}
+              <span className="text-xs text-gray-400 ml-1 flex-shrink-0">({panelItems.length})</span>
+            </div>
+
+            {/* Status tabs */}
+            <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 flex-shrink-0">
+              {[['', 'All'], ['SUBMITTED', 'Submitted'], ['DRAFT', 'Draft']].map(([s, label]) => (
                 <button
                   key={s}
                   onClick={() => patch({ status: s })}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     statusFilter === s
                       ? 'bg-white dark:bg-gray-700 text-orange-500 shadow-sm'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  {s || 'All'}
+                  {label}
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Filter toggle button */}
-            <button
-              onClick={() => patch({ filters: showFilters ? '' : '1' })}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
-                showFilters || activeCount > 0
-                  ? 'border-orange-400 bg-orange-50 dark:bg-orange-500/10 text-orange-500'
-                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500'
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Filters
-              {activeCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-orange-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {activeCount}
-                </span>
+          {/* Header row 2: filters */}
+          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 flex-shrink-0 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[140px] max-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                className="w-full pl-8 pr-7 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/15 focus:border-orange-400 transition-colors"
+                placeholder="Search trade, wall…"
+                value={search}
+                onChange={e => patch({ q: e.target.value })}
+              />
+              {search && (
+                <button onClick={() => patch({ q: '' })} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                  <X className="w-3 h-3" />
+                </button>
               )}
-            </button>
+            </div>
+
+            {/* Trade dropdown (custom) */}
+            <div className="w-44 flex-shrink-0">
+              <Dropdown
+                value={fTrade}
+                onChange={v => patch({ trade: v })}
+                options={tradeOpts}
+                placeholder="All Trades"
+                searchable={tradeOpts.length > 6}
+              />
+            </div>
+
+            {/* Date range */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <DatePicker
+                value={fDateFrom}
+                onChange={v => patch({ dateFrom: v })}
+                placeholder="From date"
+                max={fDateTo || undefined}
+              />
+              <span className="text-xs text-gray-300 font-bold">—</span>
+              <DatePicker
+                value={fDateTo}
+                onChange={v => patch({ dateTo: v })}
+                placeholder="To date"
+                min={fDateFrom || undefined}
+                align="right"
+              />
+            </div>
+
+            {/* Clear all filters */}
+            {hasFilters && (
+              <button
+                onClick={() => patch({ q: '', trade: '', dateFrom: '', dateTo: '' })}
+                className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-semibold transition-colors px-2 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
+
+          {/* Column headers */}
+          {panelItems.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700/60 flex-shrink-0">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-20 flex-shrink-0">Wall</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex-1">Trade</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-14 text-center flex-shrink-0">Date</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-24 hidden md:block flex-shrink-0">Engineer</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-24 flex-shrink-0">Progress</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-24 text-center flex-shrink-0">Status</span>
+              <span className="w-16 flex-shrink-0" />
+            </div>
+          )}
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            <RightContent />
           </div>
         </div>
-
-        {/* Row 2: Cascading filters (collapsible) */}
-        {showFilters && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-            {/* Project */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">Project</label>
-              <select value={fProject} onChange={e => handleProject(e.target.value)} className={selCls}>
-                <option value="">All</option>
-                {projectOpts.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-
-            {/* Floor */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">Floor</label>
-              <select value={fFloor} onChange={e => handleFloor(e.target.value)} disabled={!fProject} className={selCls}>
-                <option value="">All</option>
-                {floorOpts.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-
-            {/* Room */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">Room</label>
-              <select value={fRoom} onChange={e => handleRoom(e.target.value)} disabled={!fFloor} className={selCls}>
-                <option value="">All</option>
-                {roomOpts.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-
-            {/* Wall */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">Wall</label>
-              <select value={fWall} onChange={e => patch({ wall: e.target.value })} disabled={!fRoom} className={selCls}>
-                <option value="">All</option>
-                {wallOpts.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-
-            {/* Trade */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">Trade</label>
-              <select value={fTrade} onChange={e => patch({ trade: e.target.value })} className={selCls}>
-                <option value="">All</option>
-                {tradeOpts.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-            </div>
-
-            {/* Date From */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">From</label>
-              <input
-                type="date"
-                value={fDateFrom}
-                max={fDateTo || undefined}
-                onChange={e => patch({ dateFrom: e.target.value })}
-                className={selCls}
-              />
-            </div>
-
-            {/* Date To */}
-            <div className="relative">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 pl-0.5">To</label>
-              <input
-                type="date"
-                value={fDateTo}
-                min={fDateFrom || undefined}
-                onChange={e => patch({ dateTo: e.target.value })}
-                className={selCls}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Table */}
-        {loading ? (
-          <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading…</div>
-        ) : (
-          <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    {['Project', 'Floor › Location', 'Trade', 'Date', 'Engineer', 'Progress', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                  {filtered.map(ins => {
-                    const ok       = ins.results?.filter(r => r.result === 'OK').length || 0
-                    const total    = ins.results?.length || 0
-                    const pct      = total > 0 ? Math.round((ok / total) * 100) : 0
-                    const expanded = expandedRows.has(ins._id)
-
-                    return (
-                      <Fragment key={ins._id}>
-                        <tr
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                          onClick={() => navigate(`/inspections/${ins._id}`)}
-                        >
-                          <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white whitespace-nowrap">{ins.projectId?.name}</td>
-                          <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                            {ins.floorId?.label} › {ins.locationId?.name}
-                            {ins.elementId && (
-                              <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">› {ins.elementId?.name}</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap">{ins.tradeId?.name}</td>
-                          <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{fmtDate(ins.dateOfCheck)}</td>
-                          <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{ins.checkedBy || '—'}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 min-w-[80px]">
-                              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                              </div>
-                              <span className="text-xs text-gray-400 whitespace-nowrap">{ok}/{total}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3"><StatusBadge status={ins.status} /></td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={e => toggleRow(ins._id, e)}
-                                title="Timeline"
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  expanded
-                                    ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500'
-                                    : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500'
-                                }`}
-                              >
-                                {expanded ? <ChevronUp className="w-4 h-4" /> : <ClipboardList className="w-4 h-4" />}
-                              </button>
-                              {canManage && (
-                                <button
-                                  onClick={e => handleDelete(ins._id, e)}
-                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-
-                        {expanded && (
-                          <tr key={`tl-${ins._id}`} className="bg-gray-50/70 dark:bg-gray-700/20">
-                            <td colSpan={8} className="px-5 py-4">
-                              <InspectionTimeline inspection={ins} />
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    )
-                  })}
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-400">
-                        No inspections match the current filters.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     </AdminLayout>
   )

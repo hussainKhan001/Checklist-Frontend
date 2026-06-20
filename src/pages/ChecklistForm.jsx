@@ -67,6 +67,7 @@ export default function ChecklistForm() {
   const initDoneRef     = useRef(false)
   const userEditedRef   = useRef(false) // true only after user makes a real change
   const preFilledCpIds  = useRef(new Set()) // checkpoint IDs that came from previous submission
+  const [lockedOkCpIds, setLockedOkCpIds] = useState(new Set()) // cpIds saved as OK → permanently locked
   const autoSaveTimer   = useRef(null)
   const [inspectionId, setInspectionId]           = useState(null)
   const [lastSaved, setLastSaved]                 = useState(null)
@@ -154,23 +155,25 @@ export default function ChecklistForm() {
         setDraftRestoredAt(draft.updatedAt)
         setShowDraftBanner(true)
       } else if (submittedToday && lastSubmission) {
-        // Priority 2a: already submitted today — pre-fill, lock only filled checkpoints
+        // Priority 2a: already submitted today — OK items locked, NOT_OK items editable for re-inspection
         const { r, p } = preloadResults(lastSubmission)
         setResults(prev => ({ ...prev, ...r }))
         setPhotos(p)
         if (lastSubmission.workNotes) setWorkNotes(lastSubmission.workNotes)
         preFilledCpIds.current = new Set(Object.keys(r).filter(id => r[id] !== 'PENDING'))
+        setLockedOkCpIds(new Set(Object.keys(r).filter(id => r[id] === 'OK')))
+        inspIdRef.current = lastSubmission._id
+        setInspectionId(lastSubmission._id)
         setIsLockedToday(true)
       } else if (lastSubmission) {
-        // Priority 2b: not submitted today — pre-fill from last for reference, lock until user starts new
+        // Priority 2b: not submitted today — pre-fill from last; OK locked, NOT_OK editable
         const { r, p } = preloadResults(lastSubmission)
         setResults(prev => ({ ...prev, ...r }))
         setPhotos(p)
         if (lastSubmission.workNotes) setWorkNotes(lastSubmission.workNotes)
-        // Record which checkpoint IDs came pre-filled so we lock only those
         preFilledCpIds.current = new Set(Object.keys(r).filter(id => r[id] !== 'PENDING'))
+        setLockedOkCpIds(new Set(Object.keys(r).filter(id => r[id] === 'OK')))
         setIsPreFillLocked(true)
-        // inspIdRef stays null — auto-save will create a NEW inspection record
       }
     } catch {
       // Silent — proceed with blank form
@@ -213,11 +216,12 @@ export default function ChecklistForm() {
 
   useEffect(() => {
     if (!initDoneRef.current) return
-    if (!userEditedRef.current) return  // don't save on initial pre-fill
+    if (!userEditedRef.current) return            // don't save on initial pre-fill
+    if (isLockedToday || isPreFillLocked) return  // pre-fill mode: Submit-only, no auto-draft
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(saveDraft, 2000)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [results, photos, workNotes, dateOfCheck])
+  }, [results, photos, workNotes, dateOfCheck, isLockedToday, isPreFillLocked])
 
   // ── Photo upload ─────────────────────────────────────────────────────────────
   const setResult = (cpId, value) => {
@@ -260,6 +264,7 @@ export default function ChecklistForm() {
       }
       await submitInspection(id, {})
       setSubmitted(true)
+      try { new BroadcastChannel('nqc-inspections').postMessage({ type: 'submitted' }) } catch {}
     } catch {
       toast.error('Submission failed. Please try again.')
     } finally {
@@ -346,10 +351,10 @@ export default function ChecklistForm() {
           <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-              Already submitted today — read only
+              Submitted today — OK items locked
             </p>
             <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-              This inspection has been submitted for today. Come back tomorrow to fill a new one.
+              Not OK items can still be updated and re-submitted after rectification.
             </p>
           </div>
         </div>
@@ -522,8 +527,10 @@ export default function ChecklistForm() {
               )}
 
               {(() => {
-                // Lock only checkpoints that came pre-filled with a result (OK/Not OK)
-                const cpLocked = (isLockedToday || isPreFillLocked) && preFilledCpIds.current.has(String(cp._id))
+                const isAnyLock = isLockedToday || isPreFillLocked
+                // Saved as OK → both buttons locked. Saved as NOT_OK → both buttons editable.
+                const cpLocked = isAnyLock && lockedOkCpIds.has(String(cp._id))
+                const notOkBtnLocked = cpLocked
                 return (
                   <>
                     <div className="px-4 pb-4 pt-2 flex flex-wrap items-center gap-2">
@@ -540,7 +547,7 @@ export default function ChecklistForm() {
                         <CheckCircle2 className="w-4 h-4" /> OK
                       </button>
                       <button
-                        disabled={cpLocked}
+                        disabled={notOkBtnLocked}
                         onClick={() => setResult(cp._id, cpResult === 'NOT_OK' ? 'PENDING' : 'NOT_OK')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all
                           disabled:opacity-60 disabled:cursor-not-allowed ${
