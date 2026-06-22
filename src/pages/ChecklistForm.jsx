@@ -40,7 +40,9 @@ const compressImage = (file, maxPx = 1280, quality = 0.75) =>
 
 export default function ChecklistForm() {
   const { tradeId } = useParams()
-  const { projectId, floorId, locationId, elementId } = JSON.parse(sessionStorage.getItem('checklistCtx') || '{}')
+  const { projectId, floorId, locationId, elementId } = JSON.parse(
+    sessionStorage.getItem('checklistCtx') || localStorage.getItem(`checklistCtx_${tradeId}`) || '{}'
+  )
   const navigate = useNavigate()
 
   // Context data
@@ -54,6 +56,7 @@ export default function ChecklistForm() {
   const [error, setError]         = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [photoErrorCpIds, setPhotoErrorCpIds] = useState(new Set())
 
   // Form fields
   const [dateOfCheck, setDateOfCheck]           = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })
@@ -77,7 +80,6 @@ export default function ChecklistForm() {
   const [uploadingCps, setUploadingCps]           = useState(new Set())
   const [prevSubmission, setPrevSubmission]       = useState(null) // last SUBMITTED for this wall
   const [isLockedToday, setIsLockedToday]         = useState(false) // today already submitted → read-only
-  const [isPreFillLocked, setIsPreFillLocked]     = useState(false) // pre-filled from prev → locked until user starts new
 
   // ── Load context data ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -166,14 +168,11 @@ export default function ChecklistForm() {
         setInspectionId(lastSubmission._id)
         setIsLockedToday(true)
       } else if (lastSubmission) {
-        // Priority 2b: not submitted today — pre-fill from last; OK locked, NOT_OK editable
+        // Priority 2b: not submitted today — pre-fill from last, immediately editable
         const { r, p } = preloadResults(lastSubmission)
         setResults(prev => ({ ...prev, ...r }))
         setPhotos(p)
         if (lastSubmission.workNotes) setWorkNotes(lastSubmission.workNotes)
-        preFilledCpIds.current = new Set(Object.keys(r).filter(id => r[id] !== 'PENDING'))
-        setLockedOkCpIds(new Set(Object.keys(r).filter(id => r[id] === 'OK')))
-        setIsPreFillLocked(true)
       }
     } catch {
       // Silent — proceed with blank form
@@ -217,11 +216,11 @@ export default function ChecklistForm() {
   useEffect(() => {
     if (!initDoneRef.current) return
     if (!userEditedRef.current) return            // don't save on initial pre-fill
-    if (isLockedToday || isPreFillLocked) return  // pre-fill mode: Submit-only, no auto-draft
+    if (isLockedToday) return  // re-inspection mode: Submit-only, no auto-draft
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(saveDraft, 2000)
     return () => clearTimeout(autoSaveTimer.current)
-  }, [results, photos, workNotes, dateOfCheck, isLockedToday, isPreFillLocked])
+  }, [results, photos, workNotes, dateOfCheck, isLockedToday])
 
   // ── Photo upload ─────────────────────────────────────────────────────────────
   const setResult = (cpId, value) => {
@@ -240,6 +239,7 @@ export default function ChecklistForm() {
       if (inspIdRef.current) fd.append('inspectionId', inspIdRef.current)
       const res = await uploadPhoto(fd)
       setPhotos(prev => ({ ...prev, [cpId]: [...(prev[cpId] || []), res.data.url] }))
+      setPhotoErrorCpIds(prev => { const s = new Set(prev); s.delete(String(cpId)); return s })
     } catch {
       toast.error('Photo upload failed.')
     } finally {
@@ -249,6 +249,22 @@ export default function ChecklistForm() {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    // Validate: photoRequired checkpoints must have a photo before submitting
+    const missingPhoto = checkPoints.filter(cp =>
+      cp.photoRequired &&
+      results[cp._id] === 'OK' &&
+      (!photos[cp._id] || photos[cp._id].length === 0)
+    )
+    if (missingPhoto.length > 0) {
+      setPhotoErrorCpIds(new Set(missingPhoto.map(cp => String(cp._id))))
+      toast.error(`${missingPhoto.length} checkpoint${missingPhoto.length > 1 ? 's require' : ' requires'} a photo before submitting.`)
+      // Scroll to first problematic checkpoint
+      const first = document.getElementById(`cp-${missingPhoto[0]._id}`)
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    setPhotoErrorCpIds(new Set())
+
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     setSubmitting(true)
     try {
@@ -364,25 +380,14 @@ export default function ChecklistForm() {
       {prevSubmission && !showDraftBanner && !isLockedToday && (
         <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              Pre-filled from last submission · {new Date(prevSubmission.dateOfCheck || prevSubmission.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Continuing from last submission · {new Date(prevSubmission.submittedAt || prevSubmission.dateOfCheck || prevSubmission.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              {isPreFillLocked
-                ? 'Previous data shown for reference. Click "Start New" to begin today\'s inspection.'
-                : 'Previous results loaded. Review and submit to create a new inspection record.'
-              }
+              Previous results loaded. Update checkpoints and submit to record today's inspection.
             </p>
           </div>
-          {isPreFillLocked && (
-            <button
-              onClick={() => setIsPreFillLocked(false)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
-            >
-              Start New
-            </button>
-          )}
         </div>
       )}
 
@@ -480,10 +485,13 @@ export default function ChecklistForm() {
           return (
             <div
               key={cp._id}
+              id={`cp-${cp._id}`}
               className={`bg-white dark:bg-gray-800 border rounded-xl shadow-sm overflow-hidden transition-all ${
-                cpResult === 'OK'     ? 'border-emerald-300 dark:border-emerald-500/40' :
-                cpResult === 'NOT_OK' ? 'border-red-300 dark:border-red-500/40' :
-                                        'border-gray-200 dark:border-gray-700'
+                photoErrorCpIds.has(String(cp._id))
+                  ? 'border-red-500 dark:border-red-500 ring-2 ring-red-400/50'
+                  : cpResult === 'OK'     ? 'border-emerald-300 dark:border-emerald-500/40'
+                  : cpResult === 'NOT_OK' ? 'border-red-300 dark:border-red-500/40'
+                  :                        'border-gray-200 dark:border-gray-700'
               }`}
             >
               <div className={`flex items-start gap-3 p-4 ${
@@ -527,7 +535,7 @@ export default function ChecklistForm() {
               )}
 
               {(() => {
-                const isAnyLock = isLockedToday || isPreFillLocked
+                const isAnyLock = isLockedToday
                 // Saved as OK → both buttons locked. Saved as NOT_OK → both buttons editable.
                 const cpLocked = isAnyLock && lockedOkCpIds.has(String(cp._id))
                 const notOkBtnLocked = cpLocked

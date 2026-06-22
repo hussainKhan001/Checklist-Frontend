@@ -61,8 +61,8 @@ export default function App() {
           <Route path="/profile"                           element={<ProtectedRoute>                                       <Profile />         </ProtectedRoute>} />
           <Route path="/inspections"                       element={<ProtectedRoute permission="view_inspections">         <Inspections />     </ProtectedRoute>} />
           <Route path="/inspections/:id"                   element={<ProtectedRoute permission="view_inspections">         <InspectionDetail /></ProtectedRoute>} />
-          <Route path="/checklist"                         element={<ProtectedRoute permission="view_inspections">         <ChecklistMatrix /> </ProtectedRoute>} />
-          <Route path="/progress"                          element={<ProtectedRoute permission="view_inspections">         <SiteProgress />    </ProtectedRoute>} />
+          <Route path="/checklist"                         element={<ProtectedRoute permission="view_inspections">         <ChecklistMatrix />        </ProtectedRoute>} />
+          <Route path="/progress"                          element={<ProtectedRoute permission="view_inspections">         <SiteProgress />           </ProtectedRoute>} />
           <Route path="/projects"                          element={<ProtectedRoute permission="view_projects">            <Projects />        </ProtectedRoute>} />
           <Route path="/projects/:projectId/floors"        element={<ProtectedRoute permission="view_projects">            <Floors />          </ProtectedRoute>} />
           <Route path="/trades"                            element={<ProtectedRoute permission="view_trades">              <Trades />          </ProtectedRoute>} />

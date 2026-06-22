@@ -8,11 +8,11 @@ import {
 } from 'lucide-react'
 
 const ALL_NAV = [
-  { to: '/dashboard',   label: 'Dashboard',          icon: LayoutDashboard, end: true },
-  { to: '/inspections', label: 'Inspections',        icon: ClipboardList,   permission: 'view_inspections' },
-  { to: '/checklist',   label: 'Checklist Matrix',   icon: LayoutGrid,      permission: 'view_inspections' },
-  { to: '/progress',    label: 'Site Progress',      icon: TrendingUp,      permission: 'view_inspections' },
-  { to: '/projects',    label: 'Projects',           icon: FolderOpen,      permission: 'view_projects'    },
+  { to: '/dashboard',        label: 'Dashboard',          icon: LayoutDashboard, end: true },
+  { to: '/inspections',      label: 'Inspections',        icon: ClipboardList,   permission: 'view_inspections' },
+  { to: '/checklist',        label: 'Checklist Matrix',   icon: LayoutGrid,      permission: 'view_inspections' },
+  { to: '/progress',         label: 'Site Progress',      icon: TrendingUp,      permission: 'view_inspections' },
+  { to: '/projects',         label: 'Projects',           icon: FolderOpen,      permission: 'view_projects'    },
   { to: '/trades',      label: 'Trades & Checklists',icon: Layers,          permission: 'view_trades'      },
   { to: '/users',       label: 'Users',              icon: Users,           permission: 'manage_users'     },
   { to: '/roles',       label: 'Roles & Permissions',icon: ShieldCheck,     permission: 'manage_roles'     },
@@ -169,7 +169,7 @@ export default function AdminLayout({ children }) {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col flex-shrink-0 transition-all duration-300 z-[60]
+        className={`hidden lg:flex flex-col flex-shrink-0 transition-all duration-300 z-20
           bg-white/90 dark:bg-gray-800/95 backdrop-blur-xl
           border-r border-gray-100 dark:border-gray-700/50
           shadow-[0_8px_30px_rgb(0,0,0,0.04)]
@@ -187,12 +187,12 @@ export default function AdminLayout({ children }) {
 
       {/* Mobile backdrop */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[60] w-72 max-w-[85vw] flex flex-col
+        className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[85vw] flex flex-col
           bg-white dark:bg-gray-800 shadow-2xl transition-transform duration-300 lg:hidden
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >

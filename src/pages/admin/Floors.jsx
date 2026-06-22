@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
-import { Plus, Pencil, Trash2, MapPin, Layers, Briefcase, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, MapPin, Layers, Briefcase, X, ChevronDown, ChevronUp, Map, Upload, ImageOff, FileText, ExternalLink } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import {
@@ -10,6 +10,7 @@ import {
   adminGetLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation,
   adminGetElements, adminCreateElement, adminUpdateElement, adminDeleteElement,
   adminGetTrades, adminGetTradeElementsByLocation, adminCreateTradeElement, adminDeleteTradeElement,
+  uploadPhoto,
 } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -71,6 +72,13 @@ export default function Floors() {
   const [showElems, setShowElems]     = useState(false)
   const [elemModal, setElemModal]     = useState(null)
   const [elemForm, setElemForm]       = useState(BLANK_ELEM)
+
+  // Floor map upload
+  const [floorMapModal, setFloorMapModal]     = useState(null)  // floor object
+  const [floorMapPreview, setFloorMapPreview] = useState(null)  // object URL for new file
+  const [floorMapIsNewPdf, setFloorMapIsNewPdf] = useState(false)
+  const [floorMapUploading, setFloorMapUploading] = useState(false)
+  const floorMapFileRef = useRef(null)
 
   useEffect(() => { adminGetProjects().then(r => setProjects(r.data)) }, [])
   useEffect(() => {
@@ -243,6 +251,35 @@ export default function Floors() {
 
   const typeLabel = (t) => ({ APARTMENT: 'Apartment', COMMON_AREA: 'Common Area', PROJECT_LEVEL: 'Project Level' }[t] || t)
 
+  /* ── Floor map upload ──────────────────────────────── */
+  const uploadFloorMap = async () => {
+    const file = floorMapFileRef.current?.files?.[0]
+    if (!file) return
+    setFloorMapUploading(true)
+    try {
+      const fd = new FormData(); fd.append('photo', file)
+      const { data } = await uploadPhoto(fd)
+      await adminUpdateFloor(floorMapModal._id, { mapImage: data.url })
+      setFloors(prev => prev.map(f => f._id === floorMapModal._id ? { ...f, mapImage: data.url } : f))
+      setFloorMapModal(prev => ({ ...prev, mapImage: data.url }))
+      setFloorMapPreview(null)
+      setFloorMapIsNewPdf(false)
+      if (floorMapFileRef.current) floorMapFileRef.current.value = ''
+      toast.success('Floor map uploaded')
+      setFloorMapModal(null)
+    } catch { toast.error('Upload failed. Try again.') }
+    finally { setFloorMapUploading(false) }
+  }
+
+  const removeFloorMap = async () => {
+    const ok = await confirm('Remove this floor map?', 'The map image will be deleted from this floor.')
+    if (!ok) return
+    await adminUpdateFloor(floorMapModal._id, { mapImage: '' })
+    setFloors(prev => prev.map(f => f._id === floorMapModal._id ? { ...f, mapImage: '' } : f))
+    setFloorMapModal(prev => ({ ...prev, mapImage: '' }))
+    toast.success('Map removed')
+  }
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
@@ -300,6 +337,7 @@ export default function Floors() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openLocations(f)} title="Locations" className={`p-1.5 rounded-lg transition-colors ${locFloor?._id === f._id ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-500' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-orange-500'}`}><MapPin className="w-4 h-4" /></button>
+                          {isAdmin && <button onClick={() => { setFloorMapModal(f); setFloorMapPreview(null) }} title="Floor map" className={`p-1.5 rounded-lg transition-colors ${f.mapImage ? 'text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-500/10' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-teal-500'}`}><Map className="w-4 h-4" /></button>}
                           {isAdmin && <button onClick={() => openEditFloor(f)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-500 transition-colors"><Pencil className="w-4 h-4" /></button>}
                           {isAdmin && <button onClick={() => delFloor(f._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>}
                         </div>
@@ -704,6 +742,127 @@ export default function Floors() {
               <button onClick={() => setElemModal(null)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
               <button onClick={saveElement} className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold shadow-sm transition">Save</button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Floor map upload drawer ──────────────────────────────────────────── */}
+      {floorMapModal && (
+        <Modal
+          title="Floor Map"
+          onClose={() => setFloorMapModal(null)}
+          footer={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={uploadFloorMap}
+                disabled={!floorMapPreview || floorMapUploading}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {floorMapUploading ? 'Uploading…' : 'Save Map'}
+              </button>
+              {floorMapModal.mapImage && !floorMapPreview && (
+                <button
+                  onClick={removeFloorMap}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              )}
+              {floorMapPreview && (
+                <button
+                  onClick={() => { setFloorMapPreview(null); setFloorMapIsNewPdf(false); if (floorMapFileRef.current) floorMapFileRef.current.value = '' }}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            {/* Floor info */}
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                <Map className="w-4 h-4 text-teal-500" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{floorMapModal.label}</p>
+                <p className="text-xs text-gray-400">{floorMapModal.code}</p>
+              </div>
+            </div>
+
+            {/* Preview area */}
+            {(() => {
+              const src   = floorMapPreview || floorMapModal.mapImage
+              const isPdf = floorMapPreview ? floorMapIsNewPdf : (floorMapModal.mapImage?.toLowerCase().includes('.pdf') || floorMapModal.mapImage?.includes('/raw/upload/'))
+
+              if (src && isPdf) return (
+                <div className="relative flex items-center gap-4 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
+                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <FileText className="w-6 h-6 text-red-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">PDF Document</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Floor plan / layout drawing</p>
+                    {!floorMapPreview && (
+                      <a href={src} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+                        <ExternalLink className="w-3 h-3" /> Open PDF
+                      </a>
+                    )}
+                  </div>
+                  {floorMapPreview && (
+                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">New</span>
+                  )}
+                </div>
+              )
+
+              if (src) return (
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                  <img src={src} alt="Floor map" className="w-full max-h-56 object-contain" />
+                  {floorMapPreview && (
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">New</div>
+                  )}
+                </div>
+              )
+
+              return (
+                <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                    <Map className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-400">No map uploaded yet</p>
+                  <p className="text-[11px] text-gray-300 dark:text-gray-600 mt-0.5">Supports image or PDF</p>
+                </div>
+              )
+            })()}
+
+            {/* Upload area */}
+            <label className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors cursor-pointer group">
+              <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors">
+                <Upload className="w-4 h-4 text-orange-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {floorMapModal.mapImage ? 'Replace map' : 'Upload map'}
+                </p>
+                <p className="text-[11px] text-gray-400 truncate">JPG, PNG, WebP or PDF</p>
+              </div>
+              <input
+                ref={floorMapFileRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f) {
+                    setFloorMapPreview(URL.createObjectURL(f))
+                    setFloorMapIsNewPdf(f.type === 'application/pdf')
+                  }
+                }}
+              />
+            </label>
           </div>
         </Modal>
       )}

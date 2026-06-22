@@ -69,7 +69,9 @@ export default function SelectTrade() {
     if (elemCounts[trade._id] > 0) {
       navigate(`/p/${projectId}/f/${floorId}/l/${locationId}/t/${trade._id}`)
     } else {
-      sessionStorage.setItem('checklistCtx', JSON.stringify({ projectId, floorId, locationId, elementId: null }))
+      const ctx = JSON.stringify({ projectId, floorId, locationId, elementId: null })
+      sessionStorage.setItem('checklistCtx', ctx)
+      localStorage.setItem(`checklistCtx_${trade._id}`, ctx)
       navigate(`/c/${trade._id}`)
     }
   }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AdminLayout from '../../components/AdminLayout'
-import { adminGetProjects, adminGetFloors, adminGetMatrix } from '../../api'
-import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio } from 'lucide-react'
+import Modal from '../../components/Modal'
+import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../api'
+import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ── Cell status config ─────────────────────────────────────────────────────────
@@ -151,13 +152,137 @@ function TooltipContent({ tooltip, pinned, onClose }) {
   )
 }
 
+// ── Checkpoint detail drawer ───────────────────────────────────────────────────
+function CheckpointModal({ cell, onClose }) {
+  const [inspections, setInspections] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    adminGetInspections({ locationId: cell.room._id, tradeId: cell.trade._id, status: 'SUBMITTED', includeResults: 'true' })
+      .then(r => setInspections(r.data))
+      .catch(() => setInspections([]))
+      .finally(() => setLoading(false))
+  }, [cell.room._id, cell.trade._id])
+
+  const RESULT_CFG = {
+    OK:      { icon: CheckCircle2, cls: 'text-emerald-500' },
+    NOT_OK:  { icon: XCircle,      cls: 'text-red-500'     },
+    PENDING: { icon: Clock,        cls: 'text-amber-500'   },
+  }
+
+  return (
+    <Modal title={`${cell.room.name} · ${cell.trade.name}`} onClose={onClose}>
+      <div className="space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">Loading…</div>
+        ) : inspections.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">No submitted inspections found.</div>
+        ) : (
+          inspections.map(ins => (
+            <div key={ins._id} className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                    {ins.elementId?.name || ins.locationId?.name || 'Inspection'}
+                  </p>
+                  {ins.submittedAt && (
+                    <p className="text-[10px] text-gray-400">
+                      {new Date(ins.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {' · '}
+                      {new Date(ins.submittedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
+                  {(() => {
+                    const ok  = (ins.results||[]).filter(r => r.result === 'OK').length
+                    const nok = (ins.results||[]).filter(r => r.result === 'NOT_OK').length
+                    const p   = (ins.results||[]).filter(r => r.result === 'PENDING').length
+                    return <>
+                      {ok  > 0 && <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold">{ok} OK</span>}
+                      {nok > 0 && <span className="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400 font-semibold">{nok} ✗</span>}
+                      {p   > 0 && <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">{p} ●</span>}
+                    </>
+                  })()}
+                </div>
+              </div>
+
+              <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {(ins.results || []).map((r, i) => {
+                  const cp  = r.checkPointId
+                  const cfg = RESULT_CFG[r.result] || RESULT_CFG.PENDING
+                  const Icon = cfg.icon
+                  return (
+                    <div key={i} className="px-3 py-2.5">
+                      <div className="flex items-start gap-2.5">
+                        <Icon className={`w-4 h-4 flex-shrink-0 mt-px ${cfg.cls}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                            <span className="text-gray-400 mr-1.5">{cp?.order || i + 1}.</span>
+                            {cp?.title || '—'}
+                          </p>
+                          {r.remarks && (
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 italic">"{r.remarks}"</p>
+                          )}
+                          {r.photos?.length > 0 && (
+                            <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                              {r.photos.map((url, pi) => (
+                                <a key={pi} href={url} target="_blank" rel="noreferrer">
+                                  <img src={url} alt="" className="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-600 hover:opacity-80 transition-opacity" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {ins.workNotes && (
+                <div className="px-3 py-2 bg-blue-50 dark:bg-blue-500/10 border-t border-blue-100 dark:border-blue-500/20">
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                    <span className="font-semibold">Notes: </span>{ins.workNotes}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 // ── Matrix table ───────────────────────────────────────────────────────────────
 function MatrixTable({ data, projectName, floorLabel }) {
   const { trades, rooms } = data
   const scrollRef = useRef(null)
   const [canScrollRight, setCanScrollRight] = useState(false)
-  const [hoverTip, setHoverTip]   = useState(null) // shown on mouse-enter
-  const [pinnedTip, setPinnedTip] = useState(null) // locked on click
+  const [hoverTip, setHoverTip]   = useState(null)
+  const [pinnedTip, setPinnedTip] = useState(null)
+  const [modalCell, setModalCell] = useState(null) // { room, trade }
+  const [collapsedTrades, setCollapsedTrades] = useState(new Set())
+  const [fadingTrades,   setFadingTrades]   = useState(new Set()) // fading out before collapse
+
+  const toggleTrade = (tid) => {
+    if (collapsedTrades.has(tid)) {
+      // Expand: show all cells (still invisible via fadingTrades), then fade-in after a paint frame
+      setCollapsedTrades(prev => { const s = new Set(prev); s.delete(tid); return s })
+      setFadingTrades(prev => new Set(prev).add(tid))
+      // 50ms ≈ 3 frames — enough for React to paint cells at scale(0)/opacity(0) before transition fires
+      setTimeout(() => setFadingTrades(prev => { const s = new Set(prev); s.delete(tid); return s }), 50)
+    } else {
+      // Collapse: GPU-animated content disappears, then DOM swaps (snap is invisible at that point)
+      setFadingTrades(prev => new Set(prev).add(tid))
+      setTimeout(() => {
+        setCollapsedTrades(prev => new Set(prev).add(tid))
+        setFadingTrades(prev => { const s = new Set(prev); s.delete(tid); return s })
+      }, 350) // matches transition duration below
+    }
+  }
 
   useEffect(() => {
     const el = scrollRef.current
@@ -200,13 +325,9 @@ function MatrixTable({ data, projectName, floorLabel }) {
 
   const handleCellClick = (e, room, trade, cellData) => {
     if (!cellData || cellData.status === 'NA' || cellData.status === 'NOT_STARTED') return
-    const key = `${room._id}-${trade._id}`
-    if (pinnedTip?.cellKey === key) {
-      setPinnedTip(null) // toggle off same cell
-    } else {
-      setPinnedTip(makeTipData(e, room, trade, cellData))
-      setHoverTip(null)
-    }
+    setHoverTip(null)
+    setPinnedTip(null)
+    setModalCell({ room, trade })
   }
 
   // Summary counts
@@ -266,90 +387,213 @@ function MatrixTable({ data, projectName, floorLabel }) {
         <div ref={scrollRef} className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <table className="text-xs border-collapse" style={{ minWidth: '100%' }}>
             <thead>
+              {/* Row 1: Trade group headers — click to collapse/expand */}
               <tr className="bg-gray-100 dark:bg-gray-700/70">
                 <th
-                  className="sticky left-0 z-20 px-2 sm:px-3 py-2.5 text-left font-bold text-gray-600 dark:text-gray-300
+                  rowSpan={2}
+                  className="sticky left-0 z-20 px-2 sm:px-3 py-2 text-left font-bold text-gray-600 dark:text-gray-300
                     border-r border-b border-gray-200 dark:border-gray-600 whitespace-nowrap bg-gray-100 dark:bg-gray-700/70"
                   style={{ minWidth: 110 }}
                 >
                   Room No.
                 </th>
-                {trades.map(trade => (
-                  <th
-                    key={String(trade._id)}
-                    title={trade.name}
-                    className={`px-1.5 py-2 text-center font-bold border-r border-b border-gray-200 dark:border-gray-600
-                      ${trade.isRecurring
-                        ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-700 dark:text-gray-200'
-                      }`}
-                    style={{ minWidth: 64, maxWidth: 110, width: 80 }}
-                  >
-                    <span className="block text-[10px] leading-tight" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
-                      {trade.name}
-                    </span>
-                    {trade.isRecurring && (
-                      <span className="mt-0.5 inline-block text-[8px] font-medium text-blue-500 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/20 px-1 py-px rounded">
-                        recurring
+                {trades.map(trade => {
+                  const tid = String(trade._id)
+                  const showSummary = collapsedTrades.has(tid) && !fadingTrades.has(tid)
+                  const colSpan = showSummary ? 1 : (trade.checkpoints?.length || 1)
+                  return (
+                    <th
+                      key={tid}
+                      colSpan={colSpan}
+                      title={showSummary ? `Click to expand ${trade.name}` : `Click to collapse ${trade.name}`}
+                      onClick={() => toggleTrade(tid)}
+                      className={`px-1.5 py-1.5 text-center font-bold border-r border-b border-gray-200 dark:border-gray-600 text-[10px]
+                        cursor-pointer select-none transition-colors
+                        ${trade.isRecurring
+                          ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20'
+                          : 'bg-gray-100 dark:bg-gray-700/70 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600/70'
+                        }`}
+                    >
+                      <span className="inline-flex items-center gap-1 justify-center">
+                        <span
+                          className="inline-block"
+                          style={{ transform: collapsedTrades.has(tid) ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.28s ease', fontSize: 8 }}
+                        >▼</span>
+                        <span style={{ overflow: 'hidden', maxWidth: showSummary ? 40 : 200, transition: 'max-width 0.28s ease', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                          {trade.name}
+                        </span>
                       </span>
-                    )}
-                  </th>
-                ))}
+                    </th>
+                  )
+                })}
+              </tr>
+              {/* Row 2: Checkpoint sub-headers — kept in DOM while fading so columns animate */}
+              <tr className="bg-gray-50 dark:bg-gray-800/60">
+                {trades.flatMap(trade => {
+                  const tid = String(trade._id)
+                  const showSummary = collapsedTrades.has(tid) && !fadingTrades.has(tid)
+                  const isFading    = fadingTrades.has(tid)
+                  if (showSummary) {
+                    return [<th key={`${tid}-col-ph`} className="border-r-2 border-b border-r-gray-300 dark:border-r-gray-600" style={{ width: 36, minWidth: 36, padding: 0 }} />]
+                  }
+                  const cps = trade.checkpoints?.length ? trade.checkpoints : [{ _id: `${tid}-na`, title: trade.name, order: 0 }]
+                  return cps.map((cp, ci) => (
+                    <th
+                      key={String(cp._id)}
+                      title={cp.title}
+                      className={`border-r border-b border-gray-200 dark:border-gray-600 text-center font-medium text-gray-500 dark:text-gray-400
+                        ${ci === cps.length - 1 ? 'border-r-2 border-r-gray-300 dark:border-r-gray-600' : ''}`}
+                      style={{ minWidth: 80, width: 90, padding: '6px 4px', verticalAlign: 'top', overflow: 'hidden' }}
+                    >
+                      <div style={{
+                        transform: isFading ? 'scaleX(0)' : 'scaleX(1)',
+                        opacity: isFading ? 0 : 1,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease',
+                        willChange: 'transform, opacity',
+                      }}>
+                        <span style={{ display: 'block', fontSize: 10, lineHeight: 1.3, whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center' }}>
+                          {cp.order ? `${cp.order}. ` : ''}{cp.title}
+                        </span>
+                      </div>
+                    </th>
+                  ))
+                })}
               </tr>
             </thead>
 
             <tbody>
-              {rooms.map((room, ri) => (
-                <tr
-                  key={String(room._id)}
-                  className={`hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors ${
-                    ri % 2 === 0 ? 'bg-white dark:bg-gray-800/10' : 'bg-gray-50/60 dark:bg-gray-800/30'
-                  }`}
-                >
-                  <td
-                    className={`sticky left-0 z-10 px-2 sm:px-3 font-semibold text-gray-700 dark:text-gray-300
-                      border-r border-gray-200 dark:border-gray-600 whitespace-nowrap truncate text-xs ${
-                      ri % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/80'
-                    }`}
-                    style={{ minWidth: 110, maxWidth: 160, height: 36 }}
-                    title={room.name}
-                  >
-                    {room.name}
-                  </td>
+              {rooms.map((room, ri) => {
+                const rowBg = ri % 2 === 0
+                  ? 'bg-white dark:bg-gray-800/10'
+                  : 'bg-gray-50/60 dark:bg-gray-800/30'
+                const stickyBg = ri % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/80'
 
-                  {trades.map(trade => {
-                    const tid = String(trade._id)
-                    const cellData = room.tradeStatuses?.[tid]
-                    const status = cellData?.status || 'NOT_STARTED'
-                    const cfg = CELL_CFG[status]
+                return (
+                  <tr key={String(room._id)} className={`hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors ${rowBg}`}>
+                    <td
+                      className={`sticky left-0 z-10 px-2 sm:px-3 font-semibold text-gray-700 dark:text-gray-300
+                        border-r border-gray-200 dark:border-gray-600 whitespace-nowrap truncate text-xs ${stickyBg}`}
+                      style={{ minWidth: 110, maxWidth: 160, height: 36 }}
+                      title={room.name}
+                    >
+                      {room.name}
+                    </td>
 
-                    return (
-                      <td
-                        key={tid}
-                        className="p-0 border-b border-r border-gray-100 dark:border-gray-700/40"
-                        style={{ height: 36, width: 80, minWidth: 64 }}
-                      >
-                        <div
-                          className={`w-full h-full flex items-center justify-center
-                            ${cfg ? cfg.bg : 'bg-gray-50 dark:bg-gray-700/20'}
-                            ${status !== 'NA' && status !== 'NOT_STARTED' ? 'cursor-pointer' : 'cursor-default'}
-                            ${pinnedTip?.cellKey === `${room._id}-${trade._id}` ? 'ring-2 ring-orange-400 ring-inset' : ''}`}
-                          onMouseEnter={status !== 'NA' ? (e) => showTooltip(e, room, trade, cellData) : undefined}
-                          onMouseLeave={() => setHoverTip(null)}
-                          onClick={(e) => handleCellClick(e, room, trade, cellData)}
-                        >
-                          {cfg
-                            ? <span className={`text-sm font-bold leading-none ${cfg.text}`}>{cfg.symbol}</span>
-                            : status === 'NA'
-                              ? <span className="text-[10px] text-gray-300 dark:text-gray-600">—</span>
-                              : <span className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-600" />
-                          }
-                        </div>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
+                    {trades.flatMap(trade => {
+                      const tid = String(trade._id)
+                      const showSummary = collapsedTrades.has(tid) && !fadingTrades.has(tid)
+                      const isFading    = fadingTrades.has(tid)
+                      const cellData    = room.tradeStatuses?.[tid]
+
+                      // ── Fully collapsed: single summary cell ────────────────
+                      if (showSummary) {
+                        const status = cellData?.status || 'NOT_STARTED'
+                        const cfg = CELL_CFG[status]
+                        return [(
+                          <td
+                            key={`${tid}-summary`}
+                            className="p-0 border-b border-r-2 border-r-gray-300 dark:border-r-gray-600 border-gray-100 dark:border-gray-700/40"
+                            style={{ height: 36, width: 36, minWidth: 36 }}
+                          >
+                            <div
+                              className={`w-full h-full flex items-center justify-center
+                                ${cfg ? cfg.bg : 'bg-transparent'}
+                                ${status !== 'NA' && status !== 'NOT_STARTED' ? 'cursor-pointer' : 'cursor-default'}`}
+                              onMouseEnter={status !== 'NA' ? (e) => showTooltip(e, room, trade, cellData) : undefined}
+                              onMouseLeave={() => setHoverTip(null)}
+                              onClick={(e) => handleCellClick(e, room, trade, cellData)}
+                            >
+                              {cfg
+                                ? <span className={`text-xs font-bold ${cfg.text}`}>{cfg.symbol}</span>
+                                : <span className="w-1 h-1 rounded-full bg-gray-200 dark:bg-gray-600" />
+                              }
+                            </div>
+                          </td>
+                        )]
+                      }
+
+                      // ── Expanded (or fading in/out): all checkpoint cells ───
+                      const cps = trade.checkpoints?.length ? trade.checkpoints : [null]
+
+                      return cps.map((cp, ci) => {
+                        const isLast = ci === cps.length - 1
+                        if (!cp) {
+                          const status = cellData?.status || 'NOT_STARTED'
+                          const cfg = CELL_CFG[status]
+                          return (
+                            <td
+                              key={`${tid}-none`}
+                              className={`p-0 border-b border-r border-gray-100 dark:border-gray-700/40 ${isLast ? 'border-r-2 border-r-gray-300 dark:border-r-gray-600' : ''}`}
+                              style={{ height: 36, width: 90, minWidth: 80, overflow: 'hidden' }}
+                            >
+                              <div
+                                className={`w-full h-full flex items-center justify-center cursor-pointer ${cfg ? cfg.bg : 'bg-transparent'}`}
+                                style={{
+                                  transform: isFading ? 'scaleX(0)' : 'scaleX(1)',
+                                  opacity: isFading ? 0 : 1,
+                                  transformOrigin: 'center center',
+                                  transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease',
+                                  willChange: 'transform, opacity',
+                                }}
+                                onMouseEnter={cellData ? (e) => showTooltip(e, room, trade, cellData) : undefined}
+                                onMouseLeave={() => setHoverTip(null)}
+                                onClick={(e) => handleCellClick(e, room, trade, cellData)}
+                              >
+                                {cfg
+                                  ? <span className={`text-xs font-bold ${cfg.text}`}>{cfg.symbol}</span>
+                                  : <span className="w-1 h-1 rounded-full bg-gray-200 dark:bg-gray-600" />
+                                }
+                              </div>
+                            </td>
+                          )
+                        }
+
+                        const cpId = String(cp._id)
+                        const hasCpData = cellData?.cpStatuses && cpId in cellData.cpStatuses
+                        const cpStatus = hasCpData ? cellData.cpStatuses[cpId] : (cellData?.status === 'NA' ? 'NA' : 'NONE')
+
+                        const CP_CFG = {
+                          OK:      { bg: 'bg-emerald-100 dark:bg-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', sym: '✓' },
+                          NOT_OK:  { bg: 'bg-red-100 dark:bg-red-500/20',         text: 'text-red-500 dark:text-red-400',         sym: '✗' },
+                          PENDING: { bg: 'bg-amber-50 dark:bg-amber-500/15',       text: 'text-amber-500 dark:text-amber-400',     sym: '●' },
+                          NA:      { bg: 'bg-gray-100/60 dark:bg-gray-700/20',     text: 'text-gray-300 dark:text-gray-700',       sym: '·' },
+                          NONE:    { bg: '',                                        text: 'text-gray-200 dark:text-gray-700',       sym: '' },
+                        }
+                        const cfg = CP_CFG[cpStatus] || CP_CFG.NONE
+
+                        return (
+                          <td
+                            key={cpId}
+                            className={`p-0 border-b border-r border-gray-100 dark:border-gray-700/40 ${isLast ? 'border-r-2 border-r-gray-300 dark:border-r-gray-600' : ''}`}
+                            style={{ height: 36, width: 90, minWidth: 80, overflow: 'hidden' }}
+                          >
+                            <div
+                              className={`w-full h-full flex items-center justify-center
+                                ${cfg.bg} ${cpStatus !== 'NA' && cpStatus !== 'NONE' ? 'cursor-pointer' : 'cursor-default'}`}
+                              style={{
+                                transform: isFading ? 'scaleX(0)' : 'scaleX(1)',
+                                opacity: isFading ? 0 : 1,
+                                transformOrigin: 'center center',
+                                transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease',
+                                willChange: 'transform, opacity',
+                              }}
+                              onMouseEnter={cellData && cpStatus !== 'NA' ? (e) => showTooltip(e, room, trade, cellData) : undefined}
+                              onMouseLeave={() => setHoverTip(null)}
+                              onClick={(e) => cpStatus !== 'NONE' && cpStatus !== 'NA' ? handleCellClick(e, room, trade, cellData) : null}
+                            >
+                              {cfg.sym
+                                ? <span className={`text-xs font-bold ${cfg.text}`}>{cfg.sym}</span>
+                                : <span className="w-1 h-1 rounded-full bg-gray-200 dark:bg-gray-600" />
+                              }
+                            </div>
+                          </td>
+                        )
+                      })
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -365,6 +609,11 @@ function MatrixTable({ data, projectName, floorLabel }) {
         <div data-tooltip-pinned>
           <TooltipContent tooltip={pinnedTip} pinned={true} onClose={() => setPinnedTip(null)} />
         </div>
+      )}
+
+      {/* Checkpoint detail modal */}
+      {modalCell && (
+        <CheckpointModal cell={modalCell} onClose={() => setModalCell(null)} />
       )}
     </>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, Fragment } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import Modal from '../../components/Modal'
 import Dropdown from '../../components/ui/Dropdown'
 import DatePicker from '../../components/ui/DatePicker'
 import {
@@ -12,7 +13,7 @@ import { useConfirm } from '../../context/ConfirmContext'
 import {
   TrendingUp, Flag, Layers, ChevronDown, ChevronRight,
   Plus, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle,
-  CalendarDays, BarChart3, X, Save, Circle,
+  CalendarDays, BarChart3, Save, Circle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -84,7 +85,7 @@ function StatCard({ label, value, sub, color, icon: Icon }) {
   )
 }
 
-// ── Milestone form modal ───────────────────────────────────────────────────────
+// ── Milestone form drawer ─────────────────────────────────────────────────────
 function MilestoneModal({ open, onClose, onSave, initial, floors, trades }) {
   const [form, setForm] = useState({ title: '', description: '', targetDate: '', priority: 'MEDIUM', floorId: '', tradeId: '' })
 
@@ -108,50 +109,11 @@ function MilestoneModal({ open, onClose, onSave, initial, floors, trades }) {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="font-bold text-gray-900 dark:text-white">{initial ? 'Edit Milestone' : 'Add Milestone'}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><X className="w-4 h-4" /></button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">Title *</label>
-            <input value={form.title} onChange={e => set('title', e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors"
-              placeholder="e.g. 1st Floor Brick Work Complete" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
-            <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors resize-none"
-              placeholder="Optional details…" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Target Date *</label>
-              <DatePicker value={form.targetDate} onChange={v => set('targetDate', v)} placeholder="Pick date" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Priority</label>
-              <Dropdown value={form.priority} onChange={v => set('priority', v || 'MEDIUM')}
-                options={[{ id: 'HIGH', name: 'High' }, { id: 'MEDIUM', name: 'Medium' }, { id: 'LOW', name: 'Low' }]}
-                placeholder="Priority"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Floor (optional)</label>
-              <Dropdown value={form.floorId} onChange={v => set('floorId', v)} options={floors} placeholder="All floors" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Trade (optional)</label>
-              <Dropdown value={form.tradeId} onChange={v => set('tradeId', v)} options={trades} placeholder="All trades" />
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+    <Modal
+      title={initial ? 'Edit Milestone' : 'Add Milestone'}
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Cancel</button>
           <button
             onClick={() => { if (form.title && form.targetDate) onSave(form) }}
@@ -161,8 +123,46 @@ function MilestoneModal({ open, onClose, onSave, initial, floors, trades }) {
             <Save className="w-3.5 h-3.5" /> Save
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1">Title *</label>
+          <input value={form.title} onChange={e => set('title', e.target.value)}
+            className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors"
+            placeholder="e.g. 1st Floor Brick Work Complete" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2}
+            className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors resize-none"
+            placeholder="Optional details…" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">Target Date *</label>
+            <DatePicker value={form.targetDate} onChange={v => set('targetDate', v)} placeholder="Pick date" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">Priority</label>
+            <Dropdown value={form.priority} onChange={v => set('priority', v || 'MEDIUM')}
+              options={[{ id: 'HIGH', name: 'High' }, { id: 'MEDIUM', name: 'Medium' }, { id: 'LOW', name: 'Low' }]}
+              placeholder="Priority"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">Floor (optional)</label>
+            <Dropdown value={form.floorId} onChange={v => set('floorId', v)} options={floors} placeholder="All floors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">Trade (optional)</label>
+            <Dropdown value={form.tradeId} onChange={v => set('tradeId', v)} options={trades} placeholder="All trades" />
+          </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   )
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import Modal from '../../components/Modal'
 import {
   adminGetRoles, adminCreateRole, adminUpdateRole, adminDeleteRole,
 } from '../../api'
@@ -423,86 +424,70 @@ export default function Roles() {
         )}
       </div>
 
-      {/* ── Name + Color modal ─────────────────────────────────────────────── */}
+      {/* ── Name + Color drawer ─────────────────────────────────────────────── */}
       {nameModal && (
-        <>
-          <div
-            className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm"
-            onClick={() => setNameModal(null)}
-          />
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-            <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-gray-900 dark:text-white">
-                  {nameModal === 'add' ? 'New Role' : 'Edit Role'}
-                </h2>
-                <button
-                  onClick={() => setNameModal(null)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-xl leading-none transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-
-              {error && (
-                <div className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-sm text-red-600 dark:text-red-400">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                  Role Name *
-                </label>
-                <input
-                  autoFocus
-                  value={form.displayName}
-                  onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))}
-                  onKeyDown={e => e.key === 'Enter' && saveNameColor()}
-                  placeholder="e.g. Site Lead"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
-                  Badge Color
-                </label>
-                <div className="flex gap-3">
-                  {COLOR_OPTIONS.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, color: c.value }))}
-                      title={c.label}
-                      className={`w-7 h-7 rounded-full ${c.cls} transition-all ${
-                        form.color === c.value
-                          ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800 scale-110'
-                          : 'opacity-50 hover:opacity-90'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-1">
-                <button
-                  onClick={() => setNameModal(null)}
-                  className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveNameColor}
-                  disabled={saving}
-                  className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition"
-                >
-                  {saving ? 'Saving…' : nameModal === 'add' ? 'Create Role' : 'Save'}
-                </button>
+        <Modal
+          title={nameModal === 'add' ? 'New Role' : 'Edit Role'}
+          onClose={() => setNameModal(null)}
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setNameModal(null)}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveNameColor}
+                disabled={saving}
+                className="px-5 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition"
+              >
+                {saving ? 'Saving…' : nameModal === 'add' ? 'Create Role' : 'Save'}
+              </button>
+            </div>
+          }
+        >
+          {error && (
+            <div className="mb-4 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
+          <div className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+                Role Name *
+              </label>
+              <input
+                autoFocus
+                value={form.displayName}
+                onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && saveNameColor()}
+                placeholder="e.g. Site Lead"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2.5">
+                Badge Color
+              </label>
+              <div className="flex gap-3">
+                {COLOR_OPTIONS.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, color: c.value }))}
+                    title={c.label}
+                    className={`w-7 h-7 rounded-full ${c.cls} transition-all ${
+                      form.color === c.value
+                        ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800 scale-110'
+                        : 'opacity-50 hover:opacity-90'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </div>
-        </>
+        </Modal>
       )}
     </AdminLayout>
   )

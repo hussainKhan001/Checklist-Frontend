@@ -44,7 +44,9 @@ export default function SelectElementForTrade() {
   }, [projectId, floorId, locationId, tradeId])
 
   const goChecklist = (elementId) => {
-    sessionStorage.setItem('checklistCtx', JSON.stringify({ projectId, floorId, locationId, elementId }))
+    const ctx = JSON.stringify({ projectId, floorId, locationId, elementId })
+    sessionStorage.setItem('checklistCtx', ctx)
+    localStorage.setItem(`checklistCtx_${tradeId}`, ctx)
     navigate(`/c/${tradeId}`)
   }
 
