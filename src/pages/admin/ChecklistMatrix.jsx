@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import Modal from '../../components/Modal'
 import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../api'
-import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock, Camera } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ── Cell status config ─────────────────────────────────────────────────────────
@@ -409,10 +409,19 @@ function MatrixTable({ data, projectName, floorLabel }) {
                       onClick={() => toggleTrade(tid)}
                       className={`px-1.5 py-1.5 text-center font-bold border-r border-b border-gray-200 dark:border-gray-600 text-[10px]
                         cursor-pointer select-none transition-colors
-                        ${trade.isRecurring
+                        ${trade.isHoldPoint
+                          ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20'
+                          : trade.isPending
+                          ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20'
+                          : trade.isRecurring
                           ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20'
                           : 'bg-gray-100 dark:bg-gray-700/70 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600/70'
                         }`}
+                      style={trade.color ? {
+                        borderLeft: `4px solid ${trade.color}`,
+                        background: `${trade.color}25`,
+                        color: trade.color,
+                      } : undefined}
                     >
                       <span className="inline-flex items-center gap-1 justify-center">
                         <span
@@ -441,9 +450,18 @@ function MatrixTable({ data, projectName, floorLabel }) {
                     <th
                       key={String(cp._id)}
                       title={cp.title}
-                      className={`border-r border-b border-gray-200 dark:border-gray-600 text-center font-medium text-gray-500 dark:text-gray-400
+                      className={`border-r border-b border-gray-200 dark:border-gray-600 text-center font-medium
+                        ${!trade.color && cp.photoRequired
+                          ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400'
+                          : !trade.color
+                          ? 'text-gray-500 dark:text-gray-400'
+                          : ''
+                        }
                         ${ci === cps.length - 1 ? 'border-r-2 border-r-gray-300 dark:border-r-gray-600' : ''}`}
-                      style={{ minWidth: 80, width: 90, padding: '6px 4px', verticalAlign: 'top', overflow: 'hidden' }}
+                      style={{
+                        minWidth: 80, width: 90, padding: '6px 4px', verticalAlign: 'top', overflow: 'hidden',
+                        ...(trade.color ? { background: `${trade.color}12`, color: trade.color } : {}),
+                      }}
                     >
                       <div style={{
                         transform: isFading ? 'scaleX(0)' : 'scaleX(1)',
@@ -452,6 +470,9 @@ function MatrixTable({ data, projectName, floorLabel }) {
                         transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease',
                         willChange: 'transform, opacity',
                       }}>
+                        {cp.photoRequired && (
+                          <Camera className="w-2.5 h-2.5 mx-auto mb-0.5 text-violet-400 dark:text-violet-500" />
+                        )}
                         <span style={{ display: 'block', fontSize: 10, lineHeight: 1.3, whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center' }}>
                           {cp.order ? `${cp.order}. ` : ''}{cp.title}
                         </span>
@@ -787,27 +808,50 @@ export default function ChecklistMatrix() {
 
         {/* Legend */}
         {matrixData && (
-          <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-1">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-gray-400 dark:text-gray-500">Legend:</span>
-            {Object.entries(CELL_CFG).map(([key, cfg]) => (
-              <div key={key} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
-                  <span className={`text-xs font-bold leading-none ${cfg.text}`}>{cfg.symbol}</span>
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <span className="font-semibold uppercase tracking-wider text-[10px] text-gray-400 dark:text-gray-500">Legend:</span>
+              {Object.entries(CELL_CFG).map(([key, cfg]) => (
+                <div key={key} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${cfg.bg}`}>
+                    <span className={`text-xs font-bold leading-none ${cfg.text}`}>{cfg.symbol}</span>
+                  </div>
+                  {cfg.label}
                 </div>
-                {cfg.label}
+              ))}
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <div className="w-5 h-5 rounded flex items-center justify-center bg-gray-50 dark:bg-gray-700/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-600" />
+                </div>
+                Not started
               </div>
-            ))}
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <div className="w-5 h-5 rounded flex items-center justify-center bg-gray-50 dark:bg-gray-700/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-600" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <div className="w-5 h-5 rounded flex items-center justify-center bg-gray-50 dark:bg-gray-700/30">
+                  <span className="text-[10px] text-gray-400">—</span>
+                </div>
+                Not assigned
               </div>
-              Not started
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <div className="w-5 h-5 rounded flex items-center justify-center bg-gray-50 dark:bg-gray-700/30">
-                <span className="text-[10px] text-gray-400">—</span>
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <span className="font-semibold uppercase tracking-wider text-[10px] text-gray-400 dark:text-gray-500">Trade types:</span>
+              <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                <div className="h-3.5 w-8 rounded bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20" />
+                Hold Point
               </div>
-              Not assigned
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                <div className="h-3.5 w-8 rounded bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20" />
+                Pending
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
+                <div className="h-3.5 w-8 rounded bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20" />
+                Recurring
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-violet-600 dark:text-violet-400">
+                <div className="h-3.5 w-8 rounded bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 flex items-center justify-center">
+                  <Camera className="w-2.5 h-2.5" />
+                </div>
+                Photo required checkpoint
+              </div>
             </div>
           </div>
         )}

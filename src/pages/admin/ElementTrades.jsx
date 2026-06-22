@@ -10,7 +10,7 @@ import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Pencil, Trash2, CheckSquare, ChevronRight, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const BLANK = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '' }
+const BLANK = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '', color: '' }
 
 const ELEM_LABEL = {
   WALL: 'Wall', COLUMN: 'Column', BEAM: 'Beam', SLAB: 'Slab',
@@ -62,7 +62,7 @@ export default function ElementTrades() {
 
   const openAdd = () => { setForm(BLANK); setError(''); setModal('add') }
   const openEdit = (t) => {
-    setForm({ name: t.name, order: t.order, isHoldPoint: t.isHoldPoint, isPending: t.isPending, whyItMatters: t.whyItMatters || '' })
+    setForm({ name: t.name, order: t.order, isHoldPoint: t.isHoldPoint, isPending: t.isPending, whyItMatters: t.whyItMatters || '', color: t.color || '' })
     setModal(t._id)
   }
 
@@ -211,6 +211,30 @@ export default function ElementTrades() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Order</label>
                   <input className={inputCls} type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Trade Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={form.color || '#6b7280'}
+                    onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                    className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer p-0.5 bg-white dark:bg-gray-700"
+                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="w-5 h-5 rounded flex-shrink-0" style={{ backgroundColor: form.color || '#6b7280' }} />
+                    <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{form.color || '#6b7280'}</span>
+                  </div>
+                  {form.color && (
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, color: '' }))}
+                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
               <div>
