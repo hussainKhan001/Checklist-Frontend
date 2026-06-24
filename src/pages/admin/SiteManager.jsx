@@ -9,7 +9,8 @@ import {
   adminGetFloors,   adminCreateFloor,   adminUpdateFloor,   adminDeleteFloor,
   adminGetLocations,adminCreateLocation,adminUpdateLocation,adminDeleteLocation,
   adminGetElements, adminCreateElement, adminUpdateElement, adminDeleteElement,
-  adminGetTrades,   adminGetTradeElementsByLocation,
+  adminGetTrades,   adminCreateTrade, adminUpdateTrade, adminDeleteTrade,
+  adminGetTradeElementsByLocation,
   adminCreateTradeElement, adminDeleteTradeElement,
   adminGetCheckPoints, adminCreateCheckPoint, adminUpdateCheckPoint, adminDeleteCheckPoint,
 } from '../../services/api'
@@ -19,7 +20,8 @@ import toast from 'react-hot-toast'
 import {
   Building2, Layers, DoorOpen, ChevronRight, Plus, Pencil,
   Trash2, Check, X, ClipboardList, Zap, ListChecks,
-  Camera, Info, ChevronDown, ChevronUp, Map, Upload, Eye, EyeOff, FileText, ExternalLink
+  Camera, Info, ChevronDown, ChevronUp, Map, Upload, Eye, EyeOff, FileText,
+  ExternalLink, CheckSquare, Settings2,
 } from 'lucide-react'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -495,6 +497,182 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
   )
 }
 
+// ── Checklist Templates View (absorbed from Trades page) ─────────────────────
+const BLANK_TRADE = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '', color: '' }
+
+function TemplatesView({ isAdmin }) {
+  const confirm = useConfirm()
+  const [trades, setTrades] = useState([])
+  const [cpCounts, setCpCounts] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState(null)
+  const [form, setForm] = useState(BLANK_TRADE)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = async () => {
+    const r = await adminGetTrades()
+    setTrades(r.data)
+    const counts = {}
+    await Promise.all(r.data.map(async t => {
+      const c = await adminGetCheckPoints(t._id)
+      counts[t._id] = c.data.length
+    }))
+    setCpCounts(counts)
+    setLoading(false)
+  }
+  useEffect(() => { load() }, [])
+
+  const openAdd  = () => { setForm(BLANK_TRADE); setError(''); setModal('add') }
+  const openEdit = (t) => { setForm({ name: t.name, order: t.order, isHoldPoint: t.isHoldPoint, isPending: t.isPending, whyItMatters: t.whyItMatters || '', color: t.color || '' }); setError(''); setModal(t._id) }
+
+  const save = async () => {
+    if (!form.name.trim()) return setError('Name is required.')
+    setSaving(true); setError('')
+    try {
+      modal === 'add' ? await adminCreateTrade(form) : await adminUpdateTrade(modal, form)
+      setModal(null); load()
+      toast.success(modal === 'add' ? 'Checklist created' : 'Checklist updated')
+    } catch (e) { setError(e.response?.data?.message || 'Save failed.') }
+    finally { setSaving(false) }
+  }
+
+  const toggleHide = async (t) => {
+    await adminUpdateTrade(t._id, { isHidden: !t.isHidden })
+    setTrades(prev => prev.map(x => x._id === t._id ? { ...x, isHidden: !x.isHidden } : x))
+    toast.success(t.isHidden ? 'Checklist enabled globally' : 'Checklist globally disabled')
+  }
+
+  const del = async (id) => {
+    const ok = await confirm('Delete this checklist and all its checkpoint templates?', 'This cannot be undone.')
+    if (!ok) return
+    await adminDeleteTrade(id)
+    setTrades(prev => prev.filter(t => t._id !== id))
+    toast.success('Deleted')
+  }
+
+  const iCls = 'w-full px-3 py-2 text-sm bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition-colors'
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Checklist Templates</p>
+          <p className="text-xs text-gray-400 mt-0.5">Global templates — name, checkpoints &amp; settings. Assign to rooms via Site Structure tab.</p>
+        </div>
+        {isAdmin && (
+          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+            <Plus className="w-4 h-4" /> New Checklist
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-start gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-300">
+        <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+        <span>The <strong>eye icon</strong> globally disables a checklist (removes from every room). To assign a checklist to a specific room, use the <strong>Site Structure</strong> tab.</span>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading…</div>
+      ) : (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                {['#', 'Checklist Name', 'Hold Point', 'Status', 'Items', 'Actions'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+              {trades.map(t => (
+                <tr key={t._id} className={`transition-colors ${t.isHidden ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{t.order}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {t.color && <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: t.color }} />}
+                      <span className={`font-semibold ${t.isHidden ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>{t.name}</span>
+                      {t.isHidden && <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-500">Hidden</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {t.isHoldPoint ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">Hold Point</span> : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {t.isPending
+                      ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400">Pending</span>
+                      : <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">Active</span>}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{cpCounts[t._id] ?? '…'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      {isAdmin && <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition"><Pencil className="w-3.5 h-3.5" /></button>}
+                      {isAdmin && (
+                        <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Enable globally' : 'Disable globally'} className={`p-1.5 rounded-lg transition ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                          {t.isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                      {isAdmin && <button onClick={() => del(t._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {trades.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">No checklists yet. Add one above.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modal && (
+        <Modal
+          title={modal === 'add' ? 'New Checklist Template' : 'Edit Checklist'}
+          onClose={() => setModal(null)}
+          footer={
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setModal(null)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg transition">Cancel</button>
+              <button onClick={save} disabled={saving} className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 rounded-lg transition">{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          }
+        >
+          {error && <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600">{error}</div>}
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name *</label>
+                <input className={iCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Brick / Block Masonry" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Order</label>
+                <input className={iCls} type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Color</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={form.color || '#6b7280'} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer p-0.5 bg-white dark:bg-gray-700" />
+                <span className="text-sm text-gray-500 font-mono">{form.color || '#6b7280'}</span>
+                {form.color && <button type="button" onClick={() => setForm(f => ({ ...f, color: '' }))} className="text-xs text-gray-400 hover:text-gray-600">Clear</button>}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Why It Matters</label>
+              <textarea className={iCls} rows={2} value={form.whyItMatters} onChange={e => setForm(f => ({ ...f, whyItMatters: e.target.value }))} placeholder="Risk context…" />
+            </div>
+            <div className="flex gap-6">
+              {[['isHoldPoint', 'Hold Point'], ['isPending', 'Content Pending']].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-orange-500" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function SiteManager() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -537,6 +715,7 @@ export default function SiteManager() {
   const [floorMapPreview, setFloorMapPreview] = useState(null)
   const [floorMapUploading, setFloorMapUploading] = useState(false)
   const [floorMapIsNewPdf, setFloorMapIsNewPdf] = useState(false)
+  const [floorMapName, setFloorMapName] = useState('')
   const floorMapFileRef = useRef(null)
 
   // Modals for Floor & Room
@@ -620,28 +799,34 @@ export default function SiteManager() {
   // Floor Map Upload
   const uploadFloorMap = async () => {
     const file = floorMapFileRef.current?.files?.[0]
-    if (!file) return
+    if (!file || !floorMapName.trim()) {
+      if (!floorMapName.trim()) toast.error('Please provide a name for the map')
+      return
+    }
     setFloorMapUploading(true)
     try {
       const fd = new FormData(); fd.append('photo', file)
       const { data } = await uploadPhoto(fd)
-      await adminUpdateFloor(floorMapFloor._id, { mapImage: data.url })
-      setFloors(prev => prev.map(f => f._id === floorMapFloor._id ? { ...f, mapImage: data.url } : f))
-      setFloorMapFloor(prev => ({ ...prev, mapImage: data.url }))
+      const newMap = { name: floorMapName, url: data.url }
+      const newMaps = [...(floorMapFloor.maps || []), newMap]
+      await adminUpdateFloor(floorMapFloor._id, { maps: newMaps })
+      setFloors(prev => prev.map(f => f._id === floorMapFloor._id ? { ...f, maps: newMaps } : f))
+      setFloorMapFloor(prev => ({ ...prev, maps: newMaps }))
       setFloorMapPreview(null); setFloorMapIsNewPdf(false)
+      setFloorMapName('')
       if (floorMapFileRef.current) floorMapFileRef.current.value = ''
-      toast.success('Floor map uploaded')
-      setFloorMapFloor(null)
+      toast.success('Floor map added')
     } catch { toast.error('Upload failed. Try again.') }
     finally { setFloorMapUploading(false) }
   }
 
-  const removeFloorMap = async () => {
+  const removeFloorMap = async (mapIndex) => {
     const ok = await confirm('Remove this floor map?')
     if (!ok) return
-    await adminUpdateFloor(floorMapFloor._id, { mapImage: '' })
-    setFloors(prev => prev.map(f => f._id === floorMapFloor._id ? { ...f, mapImage: '' } : f))
-    setFloorMapFloor(prev => ({ ...prev, mapImage: '' }))
+    const newMaps = (floorMapFloor.maps || []).filter((_, i) => i !== mapIndex)
+    await adminUpdateFloor(floorMapFloor._id, { maps: newMaps })
+    setFloors(prev => prev.map(f => f._id === floorMapFloor._id ? { ...f, maps: newMaps } : f))
+    setFloorMapFloor(prev => ({ ...prev, maps: newMaps }))
     toast.success('Map removed')
   }
 
@@ -705,16 +890,36 @@ export default function SiteManager() {
       active ? 'border-orange-400 bg-orange-50 dark:bg-orange-500/10 shadow-md'
              : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-orange-300 hover:shadow-md hover:-translate-y-0.5'}`
 
+  const view = searchParams.get('view') || 'structure'
+  const setView = (v) => { go(v === 'structure' ? {} : { view: v }) }
+
   return (
     <AdminLayout>
       <div className="space-y-2">
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* ── Top-level view tabs ───────────────────────────── */}
+        <div className="flex items-center justify-between gap-4 mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Site Manager</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Project → Floor → Room → Elements & Checklists → Checkpoint Items
-            </p>
           </div>
+          <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 flex-shrink-0">
+            {[['structure', Building2, 'Site Structure'], ['templates', CheckSquare, 'Checklist Templates']].map(([v, Icon, label]) => (
+              <button key={v} onClick={() => setView(v)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${view === v ? 'bg-white dark:bg-gray-700 text-orange-500 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
+                <Icon className="w-3.5 h-3.5"/> {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── TEMPLATES VIEW ──────────────────────────────────── */}
+        {view === 'templates' && <TemplatesView isAdmin={isAdmin} />}
+
+        {/* ── STRUCTURE VIEW ──────────────────────────────────── */}
+        {view === 'structure' && <>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Project → Floor → Room → Elements &amp; Checklists → Checkpoint Items
+          </p>
           <div className="flex items-center gap-2">
             {isAdmin && step === 0 && (
               <button onClick={openAddProj} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
@@ -861,6 +1066,8 @@ export default function SiteManager() {
           <RoomDetail project={project} room={{ ...room, floorId: fId }} allTrades={allTrades} isAdmin={isAdmin} />
         )}
 
+        </>}
+
       </div>
 
       {/* Project Add/Edit Modal */}
@@ -958,62 +1165,79 @@ export default function SiteManager() {
       {/* Floor Map Drawer */}
       {floorMapFloor && (
         <Modal
-          title="Floor Map"
-          onClose={() => setFloorMapFloor(null)}
-          footer={
-            <div className="flex items-center gap-2">
-              <button onClick={uploadFloorMap} disabled={!floorMapPreview || floorMapUploading} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
-                <Upload className="w-3.5 h-3.5" />
-                {floorMapUploading ? 'Uploading…' : 'Save Map'}
-              </button>
-              {floorMapFloor.mapImage && !floorMapPreview && (
-                <button onClick={removeFloorMap} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors">
-                  <Trash2 className="w-3.5 h-3.5" /> Remove
-                </button>
-              )}
-              {floorMapPreview && (
-                <button onClick={() => { setFloorMapPreview(null); setFloorMapIsNewPdf(false); if (floorMapFileRef.current) floorMapFileRef.current.value = '' }} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
-              )}
-            </div>
-          }
+          title="Floor Maps & Plans"
+          onClose={() => { setFloorMapFloor(null); setFloorMapName(''); setFloorMapPreview(null); setFloorMapIsNewPdf(false); }}
         >
           <div className="space-y-4">
             <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
               <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center flex-shrink-0"><Map className="w-4 h-4 text-teal-500" /></div>
               <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{floorMapFloor.label}</p>
             </div>
-            {(() => {
-              const src = floorMapPreview || floorMapFloor.mapImage
-              const isPdf = floorMapPreview ? floorMapIsNewPdf : (floorMapFloor.mapImage?.toLowerCase().includes('.pdf') || floorMapFloor.mapImage?.includes('/raw/upload/'))
-              if (src && isPdf) return (
-                <div className="relative flex items-center gap-4 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
-                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 shadow-sm"><FileText className="w-6 h-6 text-red-500" /></div>
-                  <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-800 dark:text-gray-200">PDF Document</p><p className="text-[11px] text-gray-400 mt-0.5">Floor plan</p>
-                    {!floorMapPreview && <a href={src} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline"><ExternalLink className="w-3 h-3" /> Open PDF</a>}
+            
+            {/* List of existing maps */}
+            <div className="space-y-3">
+              {(floorMapFloor.maps || []).map((mapObj, idx) => {
+                const isPdf = mapObj.url?.toLowerCase().includes('.pdf') || mapObj.url?.includes('/raw/upload/')
+                return (
+                  <div key={idx} className="relative flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      {isPdf ? <FileText className="w-6 h-6 text-red-500" /> : <img src={mapObj.url} alt="Map" className="w-full h-full object-cover rounded-xl" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{mapObj.name}</p>
+                      <a href={mapObj.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline"><ExternalLink className="w-3 h-3" /> Open {isPdf ? 'PDF' : 'Image'}</a>
+                    </div>
+                    <button onClick={() => removeFloorMap(idx)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  {floorMapPreview && <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">New</span>}
+                )
+              })}
+              {(!floorMapFloor.maps || floorMapFloor.maps.length === 0) && (
+                <p className="text-sm font-medium text-gray-400 text-center py-4">No plans uploaded yet</p>
+              )}
+            </div>
+
+            {/* Upload new map */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Add New Plan</p>
+              <input
+                type="text"
+                placeholder="Plan Name (e.g., Beam Plan, Column Plan)"
+                className={inp}
+                value={floorMapName}
+                onChange={e => setFloorMapName(e.target.value)}
+              />
+              <label className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors cursor-pointer group">
+                <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors"><Upload className="w-4 h-4 text-orange-500" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Choose File</p>
+                  <p className="text-[11px] text-gray-400 truncate">JPG, PNG, WebP or PDF</p>
                 </div>
-              )
-              if (src) return (
-                <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <img src={src} alt="Map" className="w-full max-h-56 object-contain" />
-                  {floorMapPreview && <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold">New</div>}
+                <input ref={floorMapFileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => {
+                  const file = e.target.files?.[0]; if (!file) return; setFloorMapPreview(URL.createObjectURL(file)); setFloorMapIsNewPdf(file.type === 'application/pdf')
+                }} />
+              </label>
+
+              {floorMapPreview && (
+                <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl">
+                  {floorMapIsNewPdf ? <FileText className="w-6 h-6 text-red-500" /> : <img src={floorMapPreview} alt="Preview" className="w-8 h-8 rounded object-cover" />}
+                  <span className="text-sm font-semibold flex-1 truncate">{floorMapFileRef.current?.files?.[0]?.name}</span>
+                  <button onClick={() => { setFloorMapPreview(null); setFloorMapIsNewPdf(false); if (floorMapFileRef.current) floorMapFileRef.current.value = '' }} className="p-1.5 hover:bg-orange-200 dark:hover:bg-orange-500/30 rounded-lg text-orange-600 dark:text-orange-400">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              )
-              return (
-                <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3"><Map className="w-5 h-5 text-gray-400" /></div>
-                  <p className="text-sm font-medium text-gray-400">No map uploaded yet</p>
-                </div>
-              )
-            })()}
-            <label className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:bg-orange-50/30 dark:hover:bg-orange-500/5 transition-colors cursor-pointer group">
-              <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors"><Upload className="w-4 h-4 text-orange-500" /></div>
-              <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{floorMapFloor.mapImage ? 'Replace map' : 'Upload map'}</p><p className="text-[11px] text-gray-400 truncate">JPG, PNG, WebP or PDF</p></div>
-              <input ref={floorMapFileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => {
-                const file = e.target.files?.[0]; if (!file) return; setFloorMapPreview(URL.createObjectURL(file)); setFloorMapIsNewPdf(file.type === 'application/pdf')
-              }} />
-            </label>
+              )}
+
+              <button
+                onClick={uploadFloorMap}
+                disabled={!floorMapPreview || !floorMapName.trim() || floorMapUploading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {floorMapUploading ? 'Uploading…' : 'Upload Plan'}
+              </button>
+            </div>
           </div>
         </Modal>
       )}

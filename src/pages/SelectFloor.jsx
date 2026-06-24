@@ -1,7 +1,8 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getFloors, getProject } from '../services/api'
-import { ChevronRight, Map, ZoomIn, ZoomOut, X } from 'lucide-react'
+import { ChevronRight, Map, ZoomIn, ZoomOut, X, FileText, ExternalLink } from 'lucide-react'
+import Modal from '../components/common/Modal'
 
 export default function SelectFloor() {
   const { projectId } = useParams()
@@ -11,6 +12,7 @@ export default function SelectFloor() {
   const [loading, setLoading] = useState(true)
   const [mapInfo, setMapInfo] = useState(null)  // { url, label }
   const [mapZoom, setMapZoom] = useState(1)
+  const [mapListFloor, setMapListFloor] = useState(null)
 
   useEffect(() => {
     Promise.all([getProject(projectId), getFloors(projectId)])
@@ -20,23 +22,33 @@ export default function SelectFloor() {
 
   const isPdfUrl = (url) => url?.toLowerCase().includes('.pdf') || url?.includes('/raw/upload/')
 
-  const openMap = (e, f) => {
-    e.stopPropagation()
-    if (isPdfUrl(f.mapImage)) {
-      // Open blank tab immediately (keeps popup unblocked), then navigate once blob is ready
-      const win = window.open('', '_blank')
-      fetch(f.mapImage)
-        .then(r => r.blob())
-        .then(blob => {
-          const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-          win.location.href = blobUrl
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
-        })
-        .catch(() => { win.location.href = f.mapImage })
+  const openSingleMap = (url, label, code) => {
+    if (isPdfUrl(url)) {
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
       return
     }
     setMapZoom(1)
-    setMapInfo({ url: f.mapImage, label: f.label, code: f.code })
+    setMapInfo({ url, label, code })
+    setMapListFloor(null)
+  }
+
+  const openMap = (e, f) => {
+    e.stopPropagation()
+    const allMaps = []
+    if (f.mapImage) allMaps.push({ name: 'Floor plan', url: f.mapImage })
+    if (f.maps && f.maps.length > 0) allMaps.push(...f.maps)
+
+    if (allMaps.length === 1) {
+      openSingleMap(allMaps[0].url, f.label, f.code)
+    } else if (allMaps.length > 1) {
+      setMapListFloor({ ...f, allMaps })
+    }
   }
   const closeMap = () => setMapInfo(null)
 
@@ -44,6 +56,8 @@ export default function SelectFloor() {
 
   const regularFloors      = floors.filter(f => !f.isProjectLevel)
   const projectLevelAreas  = floors.filter(f => f.isProjectLevel)
+
+  const hasAnyMap = (f) => f.mapImage || (f.maps && f.maps.length > 0)
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -74,7 +88,7 @@ export default function SelectFloor() {
             </div>
 
             {/* Map icon — top-right corner, only when map exists */}
-            {f.mapImage && (
+            {hasAnyMap(f) && (
               <button
                 onClick={(e) => openMap(e, f)}
                 title="View floor map"
@@ -105,13 +119,13 @@ export default function SelectFloor() {
                     <div className="text-xs text-gray-400 mt-0.5">Project-level area</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {f.mapImage && (
+                    {hasAnyMap(f) && (
                       <button
                         onClick={(e) => openMap(e, f)}
                         title="View floor map"
                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-200/60 dark:border-teal-500/20 hover:bg-teal-100 dark:hover:bg-teal-500/20 transition-colors"
                       >
-                        <Map className="w-3 h-3" /> Map
+                        <Map className="w-3 h-3" /> Maps
                       </button>
                     )}
                     <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-orange-400 transition-colors" />
@@ -123,7 +137,55 @@ export default function SelectFloor() {
         </div>
       )}
 
-      {/* ── Full-screen floor map lightbox ──────────────────────────────────── */}
+      {/* Map Selection Modal */}
+      {mapListFloor && (
+        <Modal title="Select Map to View" onClose={() => setMapListFloor(null)}>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center flex-shrink-0"><Map className="w-4 h-4 text-teal-500" /></div>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{mapListFloor.label} Maps</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mapListFloor.allMaps.map((mapObj, idx) => {
+                const isPdf = isPdfUrl(mapObj.url)
+                return isPdf ? (
+                  <a
+                    key={idx}
+                    href={mapObj.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 hover:border-teal-400 hover:shadow-sm transition-all text-center no-underline"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 flex items-center justify-center shadow-sm">
+                      <FileText className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div className="w-full">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{mapObj.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">PDF Document — tap to open</p>
+                    </div>
+                  </a>
+                ) : (
+                  <button
+                    key={idx}
+                    onClick={() => openSingleMap(mapObj.url, mapListFloor.label + ' - ' + mapObj.name, mapListFloor.code)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 hover:border-teal-400 hover:shadow-sm transition-all text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 flex items-center justify-center shadow-sm">
+                      <Map className="w-6 h-6 text-teal-500" />
+                    </div>
+                    <div className="w-full text-center">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{mapObj.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Image Map</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Full-screen floor map lightbox */}
       {mapInfo && (
         <div className="fixed inset-0 z-50 bg-black/95 flex flex-col" onClick={closeMap}>
           {/* Top bar */}
@@ -165,7 +227,7 @@ export default function SelectFloor() {
           </div>
 
           <div className="text-center py-2.5 text-[11px] text-white/25 flex-shrink-0 select-none">
-            Pinch or use +/âˆ’ to zoom · Tap outside to close
+            Pinch or use +/− to zoom · Tap outside to close
           </div>
         </div>
       )}

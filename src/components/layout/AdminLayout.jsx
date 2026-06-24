@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
-  LayoutDashboard, ClipboardList, FolderOpen, Layers, Users,
+  LayoutDashboard, ClipboardList, Users,
   ArrowLeft, LogOut, Menu, Building2, ShieldCheck, LayoutGrid,
-  Sun, Moon, ExternalLink, TrendingUp, ClipboardCheck, MapPin,
+  Sun, Moon, ExternalLink, TrendingUp,
   Settings2,
 } from 'lucide-react'
 
@@ -14,7 +14,6 @@ const ALL_NAV = [
   { to: '/checklist',   label: 'Overview Matrix',   icon: LayoutGrid,      permission: 'view_inspections'    },
   { to: '/progress',    label: 'Site Progress',     icon: TrendingUp,      permission: 'view_inspections'    },
   { to: '/manage',      label: 'Site Manager',      icon: Settings2,       permission: 'view_trades'         },
-  { to: '/trades',      label: 'Checklist Templates', icon: ClipboardCheck, permission: 'view_trades'         },
   { to: '/users',       label: 'Users',             icon: Users,           permission: 'manage_users'        },
   { to: '/roles',       label: 'Roles',             icon: ShieldCheck,     permission: 'manage_roles'        },
 ]

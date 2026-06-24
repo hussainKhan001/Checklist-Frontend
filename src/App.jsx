@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import { ConfirmProvider } from './context/ConfirmContext'
@@ -17,7 +17,6 @@ import ChecklistForm from './pages/ChecklistForm'
 import Dashboard from './pages/admin/Dashboard'
 import Inspections from './pages/admin/Inspections'
 import InspectionDetail from './pages/admin/InspectionDetail'
-import Trades from './pages/admin/Trades'
 import CheckPoints from './pages/admin/CheckPoints'
 import ElementTrades from './pages/admin/ElementTrades'
 import TradeElements from './pages/admin/TradeElements'
@@ -63,7 +62,7 @@ export default function App() {
           <Route path="/inspections/:id"                   element={<ProtectedRoute permission="view_inspections">         <InspectionDetail /></ProtectedRoute>} />
           <Route path="/checklist"                         element={<ProtectedRoute permission="view_inspections">         <ChecklistMatrix />        </ProtectedRoute>} />
           <Route path="/progress"                          element={<ProtectedRoute permission="view_inspections">         <SiteProgress />           </ProtectedRoute>} />
-          <Route path="/trades"                            element={<ProtectedRoute permission="view_trades">              <Trades />          </ProtectedRoute>} />
+          <Route path="/trades"                            element={<Navigate to="/manage?view=templates" replace />} />
           <Route path="/checkpoints"                         element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/trades/:tradeId/checkpoints"       element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/elements/:elementId/trades"        element={<ProtectedRoute permission="view_trades">              <ElementTrades />   </ProtectedRoute>} />
