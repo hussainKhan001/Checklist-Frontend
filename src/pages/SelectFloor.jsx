@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getFloors, getProject } from '../api'
+import { getFloors, getProject } from '../services/api'
 import { ChevronRight, Map, ZoomIn, ZoomOut, X } from 'lucide-react'
 
 export default function SelectFloor() {
@@ -165,7 +165,7 @@ export default function SelectFloor() {
           </div>
 
           <div className="text-center py-2.5 text-[11px] text-white/25 flex-shrink-0 select-none">
-            Pinch or use +/− to zoom · Tap outside to close
+            Pinch or use +/âˆ’ to zoom · Tap outside to close
           </div>
         </div>
       )}

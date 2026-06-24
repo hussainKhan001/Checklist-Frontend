@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
+import AdminLayout from '../../components/layout/AdminLayout'
 import PageHeader from '../../components/ui/PageHeader'
 import DataTable from '../../components/ui/DataTable'
 import FormModal from '../../components/ui/FormModal'
-import Modal from '../../components/Modal'
+import Modal from '../../components/common/Modal'
 import InputField from '../../components/ui/InputField'
 import Badge from '../../components/ui/Badge'
-import { adminGetProjects, adminCreateProject, adminUpdateProject, adminDeleteProject, uploadPhoto } from '../../api'
+import { adminGetProjects, adminCreateProject, adminUpdateProject, adminDeleteProject, uploadPhoto } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Layers, Pencil, Trash2, Eye, EyeOff, Map, Upload, FileText, ExternalLink } from 'lucide-react'
@@ -274,3 +274,4 @@ export default function Projects() {
     </AdminLayout>
   )
 }
+

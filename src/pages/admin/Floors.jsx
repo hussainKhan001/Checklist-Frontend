@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
 import { Plus, Pencil, Trash2, MapPin, Layers, Briefcase, X, ChevronDown, ChevronUp, Map, Upload, ImageOff, FileText, ExternalLink } from 'lucide-react'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
@@ -11,7 +11,7 @@ import {
   adminGetElements, adminCreateElement, adminUpdateElement, adminDeleteElement,
   adminGetTrades, adminGetTradeElementsByLocation, adminCreateTradeElement, adminDeleteTradeElement,
   uploadPhoto,
-} from '../../api'
+} from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
 const BLANK_FLOOR = { code: '', label: '', order: 0, isProjectLevel: false }
@@ -869,3 +869,4 @@ export default function Floors() {
     </AdminLayout>
   )
 }
+

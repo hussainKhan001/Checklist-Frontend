@@ -3,10 +3,10 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import { ConfirmProvider } from './context/ConfirmContext'
-import ProtectedRoute from './components/ProtectedRoute'
-import PublicRoute from './components/PublicRoute'
-import Header from './components/Header'
-import Footer from './components/Footer'
+import ProtectedRoute from './components/common/ProtectedRoute'
+import PublicRoute from './components/common/PublicRoute'
+import Header from './components/layout/Header'
+import Footer from './components/layout/Footer'
 import Login from './pages/Login'
 import SelectProject from './pages/SelectProject'
 import SelectFloor from './pages/SelectFloor'
@@ -23,6 +23,7 @@ import Trades from './pages/admin/Trades'
 import CheckPoints from './pages/admin/CheckPoints'
 import ElementTrades from './pages/admin/ElementTrades'
 import TradeElements from './pages/admin/TradeElements'
+import RoomAssignment from './pages/admin/RoomAssignment'
 import Users from './pages/admin/Users'
 import Roles from './pages/admin/Roles'
 import ChecklistMatrix from './pages/admin/ChecklistMatrix'
@@ -66,8 +67,10 @@ export default function App() {
           <Route path="/projects"                          element={<ProtectedRoute permission="view_projects">            <Projects />        </ProtectedRoute>} />
           <Route path="/projects/:projectId/floors"        element={<ProtectedRoute permission="view_projects">            <Floors />          </ProtectedRoute>} />
           <Route path="/trades"                            element={<ProtectedRoute permission="view_trades">              <Trades />          </ProtectedRoute>} />
+          <Route path="/checkpoints"                         element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/trades/:tradeId/checkpoints"       element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/elements/:elementId/trades"        element={<ProtectedRoute permission="view_trades">              <ElementTrades />   </ProtectedRoute>} />
+          <Route path="/assign-trades"                     element={<ProtectedRoute permission="view_trades">              <RoomAssignment />  </ProtectedRoute>} />
           <Route path="/trades/:tradeId/elements"          element={<ProtectedRoute permission="view_trades">              <TradeElements />   </ProtectedRoute>} />
           <Route path="/users"                             element={<ProtectedRoute permission="manage_users">             <Users />           </ProtectedRoute>} />
           <Route path="/roles"                             element={<ProtectedRoute permission="manage_roles">             <Roles />           </ProtectedRoute>} />

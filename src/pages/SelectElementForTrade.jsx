@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getTradeElements, getProject, getFloor, getLocations, getTrade } from '../api'
+import { getTradeElements, getProject, getFloor, getLocations, getTrade } from '../services/api'
 import { ChevronRight, Layers } from 'lucide-react'
 
 const TYPE_COLOR = {

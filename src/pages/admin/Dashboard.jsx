@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
+import AdminLayout from '../../components/layout/AdminLayout'
 import StatCard from '../../components/ui/StatCard'
 import DataTable from '../../components/ui/DataTable'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { adminGetStats, adminGetInspections } from '../../api'
+import { adminGetStats, adminGetInspections } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { ClipboardList, CheckCircle2, Clock, FolderOpen, Layers, Users, ArrowRight } from 'lucide-react'
 
@@ -85,3 +85,4 @@ export default function Dashboard() {
     </AdminLayout>
   )
 }
+

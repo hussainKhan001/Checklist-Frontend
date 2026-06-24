@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
+﻿import { useEffect, useState } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
 import {
   adminGetRoles, adminCreateRole, adminUpdateRole, adminDeleteRole,
-} from '../../api'
+} from '../../services/api'
 import {
   PERMISSIONS, PERMISSION_SECTIONS, COLOR_OPTIONS,
   NODE_TYPE_LABELS, NODE_TYPE_STYLES,
@@ -492,3 +492,4 @@ export default function Roles() {
     </AdminLayout>
   )
 }
+

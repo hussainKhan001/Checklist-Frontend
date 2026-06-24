@@ -1,13 +1,13 @@
-import { useEffect, useState, useMemo, Fragment } from 'react'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
+﻿import { useEffect, useState, useMemo, Fragment } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
 import Dropdown from '../../components/ui/Dropdown'
 import DatePicker from '../../components/ui/DatePicker'
 import {
   adminGetProjects, adminGetFloors, adminGetTrades,
   adminGetProgressSummary, adminGetProgressPlans, adminUpsertProgressPlan, adminDeleteProgressPlan,
   adminGetMilestones, adminCreateMilestone, adminUpdateMilestone, adminDeleteMilestone,
-} from '../../api'
+} from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import {
@@ -657,3 +657,4 @@ function MilestoneCard({ m, canManage, onEdit, onDelete, onToggle }) {
     </div>
   )
 }
+

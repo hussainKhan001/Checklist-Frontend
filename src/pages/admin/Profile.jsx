@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
-import AdminLayout from '../../components/AdminLayout'
+﻿import { useState, useRef } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
 import { useAuth } from '../../context/AuthContext'
-import { updateProfile, updatePassword, uploadAvatar } from '../../api'
+import { updateProfile, updatePassword, uploadAvatar } from '../../services/api'
 import { Camera, Mail, ShieldCheck, Save, Lock, Eye, EyeOff, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -224,3 +224,4 @@ export default function Profile() {
     </AdminLayout>
   )
 }
+

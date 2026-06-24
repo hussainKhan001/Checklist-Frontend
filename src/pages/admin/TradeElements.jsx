@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
+import AdminLayout from '../../components/layout/AdminLayout'
 import {
   adminGetTrades, adminGetProjects, adminGetFloors, adminGetLocations, adminGetElements,
   adminGetTradeElements, adminCreateTradeElement, adminDeleteTradeElement,
-} from '../../api'
+} from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Trash2, ChevronRight, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -217,3 +217,4 @@ export default function TradeElements() {
     </AdminLayout>
   )
 }
+

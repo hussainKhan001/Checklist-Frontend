@@ -1,6 +1,6 @@
-import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { PORTAL_PERMS } from '../constants/permissions'
+﻿import { Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { PORTAL_PERMS } from '../../constants/permissions'
 
 export default function ProtectedRoute({ children, permission }) {
   const { user, loading } = useAuth()
@@ -29,3 +29,4 @@ export default function ProtectedRoute({ children, permission }) {
 
   return children
 }
+

@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getProject, getFloor, getLocations, getTrade, getCheckPoints,
   getElements, createInspection, updateInspection, submitInspection,
   uploadPhoto, getDraftInspection, getInspections, checkDuplicateInspection,
-} from '../api'
+} from '../services/api'
 import {
   ArrowLeft, ChevronRight, AlertTriangle, Camera, CheckCircle2,
-  XCircle, MapPin, Calendar, ClipboardCheck,
+  XCircle, MapPin, Calendar, ClipboardCheck, FileText,
   RefreshCw, Save, Clock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -88,7 +88,7 @@ export default function ChecklistForm() {
       getFloor(floorId),
       getLocations(floorId),
       getTrade(tradeId),
-      getCheckPoints(tradeId, elementId || null),
+      getCheckPoints(tradeId, projectId, elementId || null),
       elementId ? getElements(locationId) : Promise.resolve({ data: [] }),
     ])
       .then(([pRes, fRes, lRes, tRes, cpRes, eRes]) => {
@@ -233,19 +233,22 @@ export default function ChecklistForm() {
     userEditedRef.current = true
     setUploadingCps(prev => new Set(prev).add(cpId))
     try {
-      const compressed = await compressImage(file)
+      const isPdf = file.type === 'application/pdf'
+      const toUpload = isPdf ? file : await compressImage(file)
       const fd = new FormData()
-      fd.append('photo', compressed)
+      fd.append('photo', toUpload)
       if (inspIdRef.current) fd.append('inspectionId', inspIdRef.current)
       const res = await uploadPhoto(fd)
       setPhotos(prev => ({ ...prev, [cpId]: [...(prev[cpId] || []), res.data.url] }))
       setPhotoErrorCpIds(prev => { const s = new Set(prev); s.delete(String(cpId)); return s })
     } catch {
-      toast.error('Photo upload failed.')
+      toast.error('Upload failed.')
     } finally {
       setUploadingCps(prev => { const s = new Set(prev); s.delete(cpId); return s })
     }
   }
+
+  const isPdfUrl = (url) => url?.toLowerCase().includes('.pdf') || url?.includes('/raw/upload/')
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -583,8 +586,7 @@ export default function ChecklistForm() {
                           }
                           <input
                             type="file"
-                            accept="image/*"
-                            capture="environment"
+                            accept="image/*,application/pdf"
                             className="hidden"
                             disabled={uploadingCps.has(cp._id)}
                             ref={el => fileInputRefs.current[cp._id] = el}
@@ -604,11 +606,19 @@ export default function ChecklistForm() {
                       <div className="px-4 pb-4 flex flex-wrap gap-2">
                         {photos[cp._id].map((url, i) => (
                           <div key={i} className="relative">
-                            <img
-                              src={url}
-                              alt={`checkpoint-${i}`}
-                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-                            />
+                            {isPdfUrl(url) ? (
+                              <a href={url} target="_blank" rel="noopener noreferrer"
+                                className="w-16 h-16 sm:w-20 sm:h-20 flex flex-col items-center justify-center rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-500/10 gap-1">
+                                <FileText className="w-6 h-6 text-red-500" />
+                                <span className="text-[9px] text-red-500 font-semibold">PDF</span>
+                              </a>
+                            ) : (
+                              <img
+                                src={url}
+                                alt={`checkpoint-${i}`}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                              />
+                            )}
                             {!submitted && !cpLocked && (
                               <button
                                 type="button"

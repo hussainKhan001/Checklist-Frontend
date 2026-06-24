@@ -1,4 +1,4 @@
-import Modal from '../Modal'
+﻿import Modal from '../common/Modal'
 
 export default function FormModal({ title, onClose, onSave, saving, error, children }) {
   return (

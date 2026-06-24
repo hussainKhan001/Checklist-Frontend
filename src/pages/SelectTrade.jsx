@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getTrades, getCheckPoints, getProject, getFloor, getLocations, getTradeElements, getInspections } from '../api'
+import { getTrades, getCheckPoints, getProject, getFloor, getLocations, getTradeElements, getInspections } from '../services/api'
 import { ChevronRight, AlertTriangle, Clock, Layers, ClipboardCheck } from 'lucide-react'
 
 const fmtDate = (d) => {

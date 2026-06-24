@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { PORTAL_PERMS, getPortalRoute } from '../constants/permissions'
+﻿import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { PORTAL_PERMS, getPortalRoute } from '../../constants/permissions'
 import { Sun, Moon, LogOut, ShieldCheck } from 'lucide-react'
 
 export default function Header({ theme, toggleTheme }) {
@@ -83,3 +83,4 @@ export default function Header({ theme, toggleTheme }) {
     </header>
   )
 }
+

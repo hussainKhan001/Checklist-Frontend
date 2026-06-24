@@ -1,6 +1,6 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { PORTAL_PERMS, getPortalRoute } from '../constants/permissions'
+﻿import { Navigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { PORTAL_PERMS, getPortalRoute } from '../../constants/permissions'
 
 // Only renders children when the user is NOT logged in.
 // If a session is already active, redirect to the appropriate destination.
@@ -25,3 +25,4 @@ export default function PublicRoute({ children }) {
 
   return children
 }
+

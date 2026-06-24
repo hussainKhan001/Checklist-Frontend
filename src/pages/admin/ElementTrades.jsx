@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
 import {
   adminGetElements, adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade,
   adminGetCheckPoints,
-} from '../../api'
+} from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Pencil, Trash2, CheckSquare, ChevronRight, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -256,3 +256,4 @@ export default function ElementTrades() {
     </AdminLayout>
   )
 }
+

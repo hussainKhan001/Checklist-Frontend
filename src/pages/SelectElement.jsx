@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getElements, getLocations, getFloor, getProject } from '../api'
+import { getElements, getLocations, getFloor, getProject } from '../services/api'
 import { ChevronRight, Layers, SkipForward } from 'lucide-react'
 
 const TYPE_META = {

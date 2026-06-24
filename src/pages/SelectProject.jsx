@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProjects } from '../api'
+import { getProjects } from '../services/api'
 import { Building2, Home, ChevronRight, Map, ZoomIn, ZoomOut, X } from 'lucide-react'
 
 const TYPE_LABELS = {
@@ -156,7 +156,7 @@ export default function SelectProject() {
 
           {/* Bottom hint */}
           <div className="text-center py-2.5 text-[11px] text-white/25 flex-shrink-0 select-none">
-            Pinch or use +/− to zoom · Tap outside image to close
+            Pinch or use +/âˆ’ to zoom · Tap outside image to close
           </div>
         </div>
       )}

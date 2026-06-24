@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { getLocations, getFloor, getProject } from '../api'
+import { getLocations, getFloor, getProject } from '../services/api'
 import { ChevronRight } from 'lucide-react'
 
 export default function SelectLocation() {

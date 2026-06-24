@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import AdminLayout from '../../components/AdminLayout'
-import { adminGetProjects, adminGetFloors, adminGetMatrix } from '../../api'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
+import { adminGetProjects, adminGetFloors, adminGetMatrix } from '../../services/api'
 import { RefreshCw, ChevronDown, Grid3X3, Radio, MoveHorizontal } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -418,3 +418,4 @@ export default function Matrix() {
     </AdminLayout>
   )
 }
+

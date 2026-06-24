@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import AdminLayout from '../../components/AdminLayout'
+﻿import { useEffect, useState } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
 import PageHeader from '../../components/ui/PageHeader'
 import DataTable from '../../components/ui/DataTable'
 import FormModal from '../../components/ui/FormModal'
 import InputField from '../../components/ui/InputField'
-import { adminGetUsers, adminCreateUser, adminUpdateUser, adminDeleteUser, adminGetRoles } from '../../api'
+import { adminGetUsers, adminCreateUser, adminUpdateUser, adminDeleteUser, adminGetRoles } from '../../services/api'
 import { ROLE_BADGE_CLS, COLOR_OPTIONS } from '../../constants/permissions'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
@@ -204,3 +204,4 @@ export default function Users() {
     </AdminLayout>
   )
 }
+

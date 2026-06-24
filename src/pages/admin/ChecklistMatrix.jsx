@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
-import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../api'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
+import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../services/api'
 import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock, Camera } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -427,7 +427,7 @@ function MatrixTable({ data, projectName, floorLabel }) {
                         <span
                           className="inline-block"
                           style={{ transform: collapsedTrades.has(tid) ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.28s ease', fontSize: 8 }}
-                        >▼</span>
+                        >â–¼</span>
                         <span style={{ overflow: 'hidden', maxWidth: showSummary ? 40 : 200, transition: 'max-width 0.28s ease', whiteSpace: 'nowrap', display: 'inline-block' }}>
                           {trade.name}
                         </span>
@@ -859,3 +859,4 @@ export default function ChecklistMatrix() {
     </AdminLayout>
   )
 }
+

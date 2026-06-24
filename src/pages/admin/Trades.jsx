@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
-import Modal from '../../components/Modal'
-import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../api'
+import AdminLayout from '../../components/layout/AdminLayout'
+import Modal from '../../components/common/Modal'
+import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Pencil, Trash2, CheckSquare, Layers, Eye, EyeOff } from 'lucide-react'
@@ -207,3 +207,4 @@ export default function Trades() {
     </AdminLayout>
   )
 }
+

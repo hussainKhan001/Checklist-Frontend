@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import AdminLayout from '../../components/AdminLayout'
-import { adminGetInspection, adminUpdateInspection, adminDeleteInspection } from '../../api'
+import AdminLayout from '../../components/layout/AdminLayout'
+import { adminGetInspection, adminUpdateInspection, adminDeleteInspection } from '../../services/api'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
@@ -173,3 +173,4 @@ export default function InspectionDetail() {
     </AdminLayout>
   )
 }
+
