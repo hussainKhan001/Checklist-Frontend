@@ -17,13 +17,12 @@ import ChecklistForm from './pages/ChecklistForm'
 import Dashboard from './pages/admin/Dashboard'
 import Inspections from './pages/admin/Inspections'
 import InspectionDetail from './pages/admin/InspectionDetail'
-import Projects from './pages/admin/Projects'
-import Floors from './pages/admin/Floors'
 import Trades from './pages/admin/Trades'
 import CheckPoints from './pages/admin/CheckPoints'
 import ElementTrades from './pages/admin/ElementTrades'
 import TradeElements from './pages/admin/TradeElements'
 import RoomAssignment from './pages/admin/RoomAssignment'
+import SiteManager from './pages/admin/SiteManager'
 import Users from './pages/admin/Users'
 import Roles from './pages/admin/Roles'
 import ChecklistMatrix from './pages/admin/ChecklistMatrix'
@@ -64,13 +63,12 @@ export default function App() {
           <Route path="/inspections/:id"                   element={<ProtectedRoute permission="view_inspections">         <InspectionDetail /></ProtectedRoute>} />
           <Route path="/checklist"                         element={<ProtectedRoute permission="view_inspections">         <ChecklistMatrix />        </ProtectedRoute>} />
           <Route path="/progress"                          element={<ProtectedRoute permission="view_inspections">         <SiteProgress />           </ProtectedRoute>} />
-          <Route path="/projects"                          element={<ProtectedRoute permission="view_projects">            <Projects />        </ProtectedRoute>} />
-          <Route path="/projects/:projectId/floors"        element={<ProtectedRoute permission="view_projects">            <Floors />          </ProtectedRoute>} />
           <Route path="/trades"                            element={<ProtectedRoute permission="view_trades">              <Trades />          </ProtectedRoute>} />
           <Route path="/checkpoints"                         element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/trades/:tradeId/checkpoints"       element={<ProtectedRoute permission="view_trades">              <CheckPoints />     </ProtectedRoute>} />
           <Route path="/elements/:elementId/trades"        element={<ProtectedRoute permission="view_trades">              <ElementTrades />   </ProtectedRoute>} />
           <Route path="/assign-trades"                     element={<ProtectedRoute permission="view_trades">              <RoomAssignment />  </ProtectedRoute>} />
+          <Route path="/manage"                            element={<ProtectedRoute permission="view_trades">              <SiteManager />     </ProtectedRoute>} />
           <Route path="/trades/:tradeId/elements"          element={<ProtectedRoute permission="view_trades">              <TradeElements />   </ProtectedRoute>} />
           <Route path="/users"                             element={<ProtectedRoute permission="manage_users">             <Users />           </ProtectedRoute>} />
           <Route path="/roles"                             element={<ProtectedRoute permission="manage_roles">             <Roles />           </ProtectedRoute>} />

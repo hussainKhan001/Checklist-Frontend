@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import AdminLayout from '../../components/layout/AdminLayout'
 import Modal from '../../components/common/Modal'
 import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../services/api'
@@ -59,7 +59,7 @@ function buildTooltipPos(x, y, cellY, wallCount) {
   }
 }
 
-function TooltipContent({ tooltip, pinned, onClose }) {
+function TooltipContent({ tooltip, pinned, onClose, onOpenModal }) {
   const { x, y, cellY, roomName, tradeName, cellData } = tooltip
   const { status, walls = [], submittedWalls, totalWalls } = cellData
 
@@ -118,16 +118,21 @@ function TooltipContent({ tooltip, pinned, onClose }) {
                 <span className={`text-xs font-bold flex-shrink-0 mt-px ${icon.color}`}>
                   {icon.symbol}
                 </span>
-                <div className="min-w-0">
+                <div className="min-w-0 flex flex-wrap items-center">
                   <span className="text-[11px] text-gray-700 dark:text-gray-300">{wall.name}</span>
+                  {wall.submittedAt && (
+                    <span className="text-[9px] text-gray-400 ml-1.5 bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">
+                      {new Date(wall.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
                   {issues.length > 0 && (
-                    <span className="text-[11px] text-red-500 ml-1">— {issues.join(', ')}</span>
+                    <span className="text-[11px] text-red-500 ml-1 whitespace-nowrap">— {issues.join(', ')}</span>
                   )}
                   {wall.wallStatus === 'done' && (
-                    <span className="text-[11px] text-emerald-500 ml-1">— all OK</span>
+                    <span className="text-[11px] text-emerald-500 ml-1 whitespace-nowrap">— all OK</span>
                   )}
                   {!wall.submitted && (
-                    <span className="text-[11px] text-gray-400 ml-1">— not submitted</span>
+                    <span className="text-[11px] text-gray-400 ml-1 whitespace-nowrap">— not submitted</span>
                   )}
                 </div>
               </div>
@@ -136,11 +141,18 @@ function TooltipContent({ tooltip, pinned, onClose }) {
         </div>
       )}
 
-      {/* Pin hint */}
+      {/* Pin hint or actions */}
       {!pinned && walls.length > 0 && (
         <p className="text-[10px] text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-700 pt-1.5">
           Click to pin
         </p>
+      )}
+      {pinned && onOpenModal && (
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <button onClick={() => { onClose(); onOpenModal(); }} className="w-full py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors">
+            View Inspection Details
+          </button>
+        </div>
       )}
 
       {/* Arrow */}
@@ -298,7 +310,7 @@ function MatrixTable({ data, projectName, floorLabel }) {
   useEffect(() => {
     if (!pinnedTip) return
     const handler = (e) => {
-      if (!e.target.closest('[data-tooltip-pinned]')) setPinnedTip(null)
+      if (!e.target.closest('[data-tooltip-pinned]') && !e.target.closest('td')) setPinnedTip(null)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -324,10 +336,11 @@ function MatrixTable({ data, projectName, floorLabel }) {
   }
 
   const handleCellClick = (e, room, trade, cellData) => {
-    if (!cellData || cellData.status === 'NA' || cellData.status === 'NOT_STARTED') return
+    if (!cellData || cellData.status === 'NA') return
+    // Prevent document mousedown from immediately clearing the newly pinned tip
+    e.stopPropagation()
     setHoverTip(null)
-    setPinnedTip(null)
-    setModalCell({ room, trade })
+    setPinnedTip(makeTipData(e, room, trade, cellData))
   }
 
   // Summary counts
@@ -628,7 +641,12 @@ function MatrixTable({ data, projectName, floorLabel }) {
       {/* Pinned tooltip — stays until dismissed */}
       {pinnedTip && (
         <div data-tooltip-pinned>
-          <TooltipContent tooltip={pinnedTip} pinned={true} onClose={() => setPinnedTip(null)} />
+          <TooltipContent 
+            tooltip={pinnedTip} 
+            pinned={true} 
+            onClose={() => setPinnedTip(null)} 
+            onOpenModal={() => setModalCell({ room: { _id: pinnedTip.cellKey.split('-')[0], name: pinnedTip.roomName }, trade: { _id: pinnedTip.cellKey.split('-')[1], name: pinnedTip.tradeName } })}
+          />
         </div>
       )}
 

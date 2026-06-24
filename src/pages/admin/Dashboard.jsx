@@ -9,12 +9,12 @@ import { useAuth } from '../../context/AuthContext'
 import { ClipboardList, CheckCircle2, Clock, FolderOpen, Layers, Users, ArrowRight } from 'lucide-react'
 
 const STAT_DEFS = [
-  { key: 'totalInspections', label: 'Total Inspections', icon: ClipboardList, bg: 'bg-orange-50 dark:bg-orange-500/10',  text: 'text-orange-500',                    border: 'border-orange-200/60 dark:border-orange-500/20'  },
-  { key: 'submitted',        label: 'Submitted',         icon: CheckCircle2,  bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-500',                   border: 'border-emerald-200/60 dark:border-emerald-500/20' },
-  { key: 'draft',            label: 'Draft',             icon: Clock,         bg: 'bg-amber-50 dark:bg-amber-500/10',     text: 'text-amber-500',                     border: 'border-amber-200/60 dark:border-amber-500/20'    },
-  { key: 'totalProjects',    label: 'Projects',          icon: FolderOpen,    bg: 'bg-blue-50 dark:bg-blue-500/10',       text: 'text-blue-500',                      border: 'border-blue-200/60 dark:border-blue-500/20'      },
-  { key: 'totalTrades',      label: 'Trades',            icon: Layers,        bg: 'bg-purple-50 dark:bg-purple-500/10',   text: 'text-purple-500',                    border: 'border-purple-200/60 dark:border-purple-500/20'  },
-  { key: 'totalUsers',       label: 'Users',             icon: Users,         bg: 'bg-gray-100 dark:bg-gray-700/50',      text: 'text-gray-500 dark:text-gray-400',   border: 'border-gray-200/60 dark:border-gray-700'         },
+  { key: 'totalInspections', label: 'Total Inspections', icon: ClipboardList, bg: 'bg-orange-50 dark:bg-orange-500/10',  text: 'text-orange-500',                    border: 'border-orange-200/60 dark:border-orange-500/20',  to: '/inspections'  },
+  { key: 'submitted',        label: 'Submitted',         icon: CheckCircle2,  bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-500',                   border: 'border-emerald-200/60 dark:border-emerald-500/20', to: '/inspections?status=SUBMITTED' },
+  { key: 'draft',            label: 'Draft',             icon: Clock,         bg: 'bg-amber-50 dark:bg-amber-500/10',     text: 'text-amber-500',                     border: 'border-amber-200/60 dark:border-amber-500/20',    to: '/inspections?status=DRAFT' },
+  { key: 'totalProjects',    label: 'Projects',          icon: FolderOpen,    bg: 'bg-blue-50 dark:bg-blue-500/10',       text: 'text-blue-500',                      border: 'border-blue-200/60 dark:border-blue-500/20',      to: '/manage'       },
+  { key: 'totalTrades',      label: 'Checklists',        icon: Layers,        bg: 'bg-purple-50 dark:bg-purple-500/10',   text: 'text-purple-500',                    border: 'border-purple-200/60 dark:border-purple-500/20',  to: '/trades'       },
+  { key: 'totalUsers',       label: 'Users',             icon: Users,         bg: 'bg-gray-100 dark:bg-gray-700/50',      text: 'text-gray-500 dark:text-gray-400',   border: 'border-gray-200/60 dark:border-gray-700',         to: '/users'        },
 ]
 
 const RECENT_COLS = [

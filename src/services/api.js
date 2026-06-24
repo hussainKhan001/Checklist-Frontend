@@ -97,9 +97,11 @@ export const adminGetInspections = (params = {}) => {
   const p = typeof params === 'string' ? { status: params } : params
   return api.get('/admin/inspections', { params: p })
 }
-export const adminGetInspection = (id) => api.get(`/admin/inspections/${id}`)
-export const adminUpdateInspection = (id, data) => api.put(`/admin/inspections/${id}`, data)
-export const adminDeleteInspection = (id) => api.delete(`/admin/inspections/${id}`)
+export const adminGetInspection      = (id)       => api.get(`/admin/inspections/${id}`)
+export const adminUpdateInspection   = (id, data) => api.put(`/admin/inspections/${id}`, data)
+export const adminApproveInspection  = (id, data) => api.post(`/admin/inspections/${id}/approve`, data)
+export const adminRejectInspection   = (id, data) => api.post(`/admin/inspections/${id}/reject`, data)
+export const adminDeleteInspection   = (id)       => api.delete(`/admin/inspections/${id}`)
 
 export const adminGetMatrix        = (params)    => api.get('/admin/matrix',         { params: { ...params, _t: Date.now() } })
 export const adminGetProjectMatrix = (projectId) => api.get('/admin/project-matrix', { params: { projectId, _t: Date.now() } })

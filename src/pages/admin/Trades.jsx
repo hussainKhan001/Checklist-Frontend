@@ -5,7 +5,7 @@ import Modal from '../../components/common/Modal'
 import { adminGetTrades, adminCreateTrade, adminUpdateTrade, adminDeleteTrade, adminGetCheckPoints } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/ConfirmContext'
-import { Plus, Pencil, Trash2, CheckSquare, Layers, Eye, EyeOff } from 'lucide-react'
+import { Plus, Pencil, Trash2, CheckSquare, Layers, Eye, EyeOff, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const BLANK = { name: '', order: 0, isHoldPoint: false, isPending: false, whyItMatters: '', color: '' }
@@ -53,7 +53,7 @@ export default function Trades() {
   const toggleHide = async (t) => {
     await adminUpdateTrade(t._id, { isHidden: !t.isHidden })
     setTrades(prev => prev.map(x => x._id === t._id ? { ...x, isHidden: !x.isHidden } : x))
-    toast.success(t.isHidden ? 'Trade visible' : 'Trade hidden')
+    toast.success(t.isHidden ? 'Checklist enabled in all rooms' : 'Checklist globally disabled (removed from all rooms)')
   }
 
   const del = async (id) => {
@@ -71,14 +71,24 @@ export default function Trades() {
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Trades & Checklists</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{trades.length} trades</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Checklists</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{trades.length} checklist types</p>
           </div>
           {isAdmin && (
             <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg shadow-sm shadow-orange-500/30 transition-colors">
-              <Plus className="w-4 h-4" /> Add Trade
+              <Plus className="w-4 h-4" /> Add Checklist
             </button>
           )}
+        </div>
+
+        {/* Info banner */}
+        <div className="flex items-start gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-xl text-sm text-blue-700 dark:text-blue-300">
+          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            The <strong>eye icon</strong> here <strong>globally disables</strong> a checklist — it disappears from every project and every room.
+            To control which checklist appears in a <strong>specific room</strong>, go to{' '}
+            <a href="/manage" className="underline font-semibold hover:text-blue-900 dark:hover:text-blue-100">Site Manager</a> and assign it there.
+          </span>
         </div>
 
         {loading ? (
@@ -89,7 +99,7 @@ export default function Trades() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                    {['#','Trade Name','Hold Point','Status','Check Points','Actions'].map(h => (
+                    {['#','Checklist Name','Hold Point','Status','Items','Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -124,7 +134,7 @@ export default function Trades() {
                             <CheckSquare className="w-3.5 h-3.5" /> Checkpoints
                           </button>
                           {isAdmin && <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"><Pencil className="w-4 h-4" /></button>}
-                          {isAdmin && <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Show trade' : 'Hide trade'} className={`p-1.5 rounded-lg transition-colors ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                          {isAdmin && <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Enable globally (will appear in all rooms)' : 'Disable globally (removes from ALL rooms & projects)'} className={`p-1.5 rounded-lg transition-colors ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                             {t.isHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                           </button>}
                           {isAdmin && <button onClick={() => del(t._id)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>}

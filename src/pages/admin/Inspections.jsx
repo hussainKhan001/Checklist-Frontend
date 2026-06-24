@@ -67,13 +67,17 @@ function InspectionTimeline({ inspection }) {
 }
 
 function SummaryPills({ items }) {
-  const sub   = items.filter(i => i.status === 'SUBMITTED').length
-  const draft = items.filter(i => i.status === 'DRAFT').length
+  const sub      = items.filter(i => i.status === 'SUBMITTED').length
+  const approved = items.filter(i => i.status === 'APPROVED').length
+  const rejected = items.filter(i => i.status === 'REJECTED').length
+  const draft    = items.filter(i => i.status === 'DRAFT').length
   return (
     <div className="flex items-center gap-1.5 ml-1">
       <span className="text-[10px] text-gray-400">{items.length}</span>
-      {sub   > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{sub}✓</span>}
-      {draft > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">{draft}●</span>}
+      {approved > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">{approved}✓</span>}
+      {sub      > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">{sub} review</span>}
+      {rejected > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">{rejected}✗</span>}
+      {draft    > 0 && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500">{draft}●</span>}
     </div>
   )
 }
@@ -486,7 +490,7 @@ export default function Inspections() {
 
             {/* Status tabs */}
             <div className="flex gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 flex-shrink-0">
-              {[['', 'All'], ['SUBMITTED', 'Submitted'], ['DRAFT', 'Draft']].map(([s, label]) => (
+              {[['', 'All'], ['SUBMITTED', 'Awaiting Review'], ['APPROVED', 'Approved'], ['REJECTED', 'Rework'], ['DRAFT', 'Draft']].map(([s, label]) => (
                 <button
                   key={s}
                   onClick={() => patch({ status: s })}

@@ -1,23 +1,22 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, ClipboardList, FolderOpen, Layers, Users,
   ArrowLeft, LogOut, Menu, Building2, ShieldCheck, LayoutGrid,
   Sun, Moon, ExternalLink, TrendingUp, ClipboardCheck, MapPin,
+  Settings2,
 } from 'lucide-react'
 
 const ALL_NAV = [
-  { to: '/dashboard',        label: 'Dashboard',          icon: LayoutDashboard, end: true },
-  { to: '/inspections',      label: 'Inspections',        icon: ClipboardList,   permission: 'view_inspections' },
-  { to: '/checklist',        label: 'Checklist Matrix',   icon: LayoutGrid,      permission: 'view_inspections' },
-  { to: '/progress',         label: 'Site Progress',      icon: TrendingUp,      permission: 'view_inspections' },
-  { to: '/projects',         label: 'Projects',           icon: FolderOpen,      permission: 'view_projects'    },
-  { to: '/trades',           label: 'Trades',             icon: Layers,          permission: 'view_trades'      },
-  { to: '/checkpoints',      label: 'Manage Checklists',  icon: ClipboardCheck,  permission: 'view_trades'      },
-  { to: '/assign-trades',    label: 'Room Assignments',   icon: MapPin,          permission: 'view_trades'      },
-  { to: '/users',            label: 'Users',              icon: Users,           permission: 'manage_users'     },
-  { to: '/roles',            label: 'Roles & Permissions',icon: ShieldCheck,     permission: 'manage_roles'     },
+  { to: '/dashboard',   label: 'Dashboard',         icon: LayoutDashboard, end: true                          },
+  { to: '/inspections', label: 'Inspections',       icon: ClipboardList,   permission: 'view_inspections'    },
+  { to: '/checklist',   label: 'Overview Matrix',   icon: LayoutGrid,      permission: 'view_inspections'    },
+  { to: '/progress',    label: 'Site Progress',     icon: TrendingUp,      permission: 'view_inspections'    },
+  { to: '/manage',      label: 'Site Manager',      icon: Settings2,       permission: 'view_trades'         },
+  { to: '/trades',      label: 'Checklist Templates', icon: ClipboardCheck, permission: 'view_trades'         },
+  { to: '/users',       label: 'Users',             icon: Users,           permission: 'manage_users'        },
+  { to: '/roles',       label: 'Roles',             icon: ShieldCheck,     permission: 'manage_roles'        },
 ]
 
 const ROLE_CHIP_CLS = [
