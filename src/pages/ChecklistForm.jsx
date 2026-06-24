@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   getProject, getFloor, getLocations, getTrade, getCheckPoints,
@@ -254,7 +254,6 @@ export default function ChecklistForm() {
   const handleSubmit = async () => {
     // Validate: photoRequired checkpoints must have a photo before submitting
     const missingPhoto = checkPoints.filter(cp =>
-      cp.photoRequired &&
       results[cp._id] === 'OK' &&
       (!photos[cp._id] || photos[cp._id].length === 0)
     )
@@ -511,9 +510,9 @@ export default function ChecklistForm() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-2 flex-wrap">
                     <span className="text-sm font-bold text-gray-900 dark:text-white leading-snug">{cp.title}</span>
-                    {cp.photoRequired && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex-shrink-0">
-                        <Camera className="w-2.5 h-2.5" /> Photo
+                    {cpResult === 'OK' && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex-shrink-0 animate-pulse">
+                        <Camera className="w-2.5 h-2.5" /> Photo Required
                       </span>
                     )}
                   </div>
@@ -582,7 +581,7 @@ export default function ChecklistForm() {
                             ? 'Uploading…'
                             : (photos[cp._id] || []).length > 0
                               ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
-                              : cp.photoRequired ? 'Add photo (required)' : 'Add photo'
+                              : cpResult === 'OK' ? 'Add photo (required)' : 'Add photo'
                           }
                           <input
                             type="file"
