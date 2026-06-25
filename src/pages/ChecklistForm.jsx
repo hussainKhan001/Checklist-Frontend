@@ -70,7 +70,7 @@ export default function ChecklistForm() {
   const initDoneRef     = useRef(false)
   const userEditedRef   = useRef(false) // true only after user makes a real change
   const preFilledCpIds  = useRef(new Set()) // checkpoint IDs that came from previous submission
-  const [lockedOkCpIds, setLockedOkCpIds] = useState(new Set()) // cpIds saved as OK → permanently locked
+  const [lockedOkCpIds, setLockedOkCpIds] = useState(new Set())
   const autoSaveTimer   = useRef(null)
   const [inspectionId, setInspectionId]           = useState(null)
   const [lastSaved, setLastSaved]                 = useState(null)
@@ -537,9 +537,8 @@ export default function ChecklistForm() {
               )}
 
               {(() => {
-                const isAnyLock = isLockedToday
-                // Saved as OK → both buttons locked. Saved as NOT_OK → both buttons editable.
-                const cpLocked = isAnyLock && lockedOkCpIds.has(String(cp._id))
+                // OK → locked. NOT_OK and PENDING → still editable.
+                const cpLocked = isLockedToday && lockedOkCpIds.has(String(cp._id))
                 const notOkBtnLocked = cpLocked
                 return (
                   <>
