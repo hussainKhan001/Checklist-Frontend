@@ -49,22 +49,19 @@ export default function SelectTrade() {
 
         const counts = {}
         const eCounts = {}
-        await Promise.all(tradeList.filter(t => !t.isPending).map(async t => {
+        for (const t of tradeList.filter(t => !t.isPending)) {
           const [cpRes, teRes] = await Promise.all([
-            // Pass projectId so project-specific checkpoints are counted correctly
             getCheckPoints(t._id, projectId),
             getTradeElements(t._id, locationId),
           ])
           counts[t._id] = cpRes.data.length
           eCounts[t._id] = teRes.data.length
-        }))
+        }
         setCpCounts(counts)
         setElemCounts(eCounts)
 
-        // Only show trades that are assigned to elements in THIS room.
-        // Global hide/unhide on the Checklists admin page = completely disable a trade everywhere.
-        // To control which trades appear in a room, use Room Assignments in Site Manager.
-        setTrades(tradeList.filter(t => eCounts[t._id] > 0))
+        const projectDisabled = (pRes.data.disabledTrades || []).map(String)
+        setTrades(tradeList.filter(t => eCounts[t._id] > 0 && !projectDisabled.includes(String(t._id))))
       })
       .finally(() => setLoading(false))
   }, [projectId, floorId, locationId])

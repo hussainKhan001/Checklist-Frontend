@@ -263,12 +263,12 @@ function CheckpointPanel({ tradeId, projectId, projectName, tradeName, onCountCh
 }
 
 // ── Room Detail (3rd level) ───────────────────────────────────────────────────
-function RoomDetail({ project, room, allTrades, isAdmin }) {
+function RoomDetail({ project, room, allTrades, isAdmin, defaultTrade }) {
   const confirm = useConfirm()
-  const [tab, setTab] = useState('elements')
+  const [tab, setTab] = useState(defaultTrade ? 'checklists' : 'elements')
   const [elements, setElements] = useState([])
   const [tradeElements, setTradeElements] = useState([])
-  const [activeChecklist, setActiveChecklist] = useState(null)
+  const [activeChecklist, setActiveChecklist] = useState(defaultTrade || null)
   const [bulkTrade, setBulkTrade] = useState('')
   const [bulking, setBulking] = useState(false)
   const [expandedTE, setExpandedTE] = useState({})
@@ -328,8 +328,15 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
 
   useEffect(() => { loadRoom() }, [loadRoom])
 
-  const assignedTrades = allTrades.filter(t =>
-    tradeElements.some(te => String(te.tradeId?._id || te.tradeId) === String(t._id))
+  // Derive assigned trades directly from tradeElements (includes hidden trades)
+  const assignedTrades = Object.values(
+    tradeElements.reduce((acc, te) => {
+      const t = te.tradeId
+      if (!t) return acc
+      const id = String(t._id || t)
+      if (!acc[id]) acc[id] = t._id ? t : allTrades.find(x => String(x._id) === id) || { _id: id, name: id }
+      return acc
+    }, {})
   )
 
   const typeSummary = (tid) => {
@@ -481,7 +488,124 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
       )}
 
       {/* ── CHECKLISTS TAB ───────────────────────────────── */}
-      {tab === 'checklists' && (
+      {tab === 'checklists' && defaultTrade && (
+        /* Focused mode: manage elements for ONE specific checklist */
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl">
+            <div className="flex items-center gap-2">
+              {defaultTrade.color && <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: defaultTrade.color }} />}
+              <ClipboardList className="w-4 h-4 text-orange-500" />
+              <span className="text-sm font-bold text-orange-700 dark:text-orange-400">{defaultTrade.name}</span>
+              <span className="text-xs text-gray-400 ml-1">
+                — {tradeElements.filter(te => String(te.tradeId?._id || te.tradeId) === String(defaultTrade._id)).length} / {elements.length} elements assigned
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  const unassigned = elements.filter(el => !tradeElements.some(te =>
+                    String(te.elementId?._id || te.elementId) === String(el._id) &&
+                    String(te.tradeId?._id || te.tradeId) === String(defaultTrade._id)
+                  ))
+                  if (!unassigned.length) return toast('All elements already assigned.')
+                  await Promise.all(unassigned.map(el => adminCreateTradeElement({ tradeId: defaultTrade._id, elementId: el._id })))
+                  await loadRoom(); toast.success(`Assigned to all ${elements.length} elements.`)
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition"
+              >
+                <Zap className="w-3 h-3" /> Assign All
+              </button>
+              <button
+                onClick={() => removeAllTE(defaultTrade)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 text-xs font-bold rounded-lg transition"
+              >
+                <Trash2 className="w-3 h-3" /> Remove All
+              </button>
+            </div>
+          </div>
+
+          {elements.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">No elements in this room. Add them in the Structural Elements tab.</p>
+          ) : (
+            /* Group elements by type */
+            Object.entries(
+              elements.reduce((acc, el) => {
+                const t = el.type || 'OTHER'
+                if (!acc[t]) acc[t] = []
+                acc[t].push(el)
+                return acc
+              }, {})
+            ).map(([type, els]) => {
+              const assignedInType = els.filter(el =>
+                tradeElements.some(te =>
+                  String(te.elementId?._id || te.elementId) === String(el._id) &&
+                  String(te.tradeId?._id || te.tradeId) === String(defaultTrade._id)
+                )
+              ).length
+              return (
+                <div key={type} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
+                  <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${TYPE_COLOR[type] || TYPE_COLOR.OTHER}`}>{ELEM_LABEL[type] || type}</span>
+                    <span className="text-xs text-gray-400">{assignedInType} / {els.length} assigned</span>
+                    <button
+                      onClick={async () => {
+                        const unassigned = els.filter(el => !tradeElements.some(te =>
+                          String(te.elementId?._id || te.elementId) === String(el._id) &&
+                          String(te.tradeId?._id || te.tradeId) === String(defaultTrade._id)
+                        ))
+                        if (!unassigned.length) return
+                        await Promise.all(unassigned.map(el => adminCreateTradeElement({ tradeId: defaultTrade._id, elementId: el._id })))
+                        await loadRoom(); toast.success(`Assigned to all ${type} elements.`)
+                      }}
+                      className="ml-auto text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-0.5 rounded hover:bg-orange-50 dark:hover:bg-orange-500/10 transition"
+                    >
+                      + Assign all {ELEM_LABEL[type]}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 p-3">
+                    {els.map(el => {
+                      const te = tradeElements.find(te =>
+                        String(te.elementId?._id || te.elementId) === String(el._id) &&
+                        String(te.tradeId?._id || te.tradeId) === String(defaultTrade._id)
+                      )
+                      const assigned = !!te
+                      return (
+                        <button
+                          key={el._id}
+                          onClick={async () => {
+                            if (assigned) {
+                              await adminDeleteTradeElement(te._id)
+                              setTradeElements(p => p.filter(x => x._id !== te._id))
+                              toast.success('Removed.')
+                            } else {
+                              const res = await adminCreateTradeElement({ tradeId: defaultTrade._id, elementId: el._id })
+                              await loadRoom()
+                              toast.success('Assigned.')
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                            assigned
+                              ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                              : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/30 text-gray-500 dark:text-gray-400 hover:border-orange-300 hover:bg-orange-50/50 dark:hover:bg-orange-500/5'
+                          }`}
+                        >
+                          <span className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 text-[10px] ${assigned ? 'bg-emerald-500 text-white' : 'border border-gray-300 dark:border-gray-500'}`}>
+                            {assigned && <Check className="w-2.5 h-2.5" />}
+                          </span>
+                          {el.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {tab === 'checklists' && !defaultTrade && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
           {/* Left: assign + list */}
@@ -607,10 +731,10 @@ function TemplatesView({ isAdmin }) {
     const r = await adminGetTrades()
     setTrades(r.data)
     const counts = {}
-    await Promise.all(r.data.map(async t => {
+    for (const t of r.data) {
       const c = await adminGetCheckPoints(t._id)
       counts[t._id] = c.data.length
-    }))
+    }
     setCpCounts(counts)
     setLoading(false)
   }
@@ -781,6 +905,7 @@ export default function SiteManager() {
 
   const pId = searchParams.get('p') || ''
   const fId = searchParams.get('f') || ''
+  const cId = searchParams.get('c') || ''
   const rId = searchParams.get('r') || ''
 
   const [projects,  setProjects]  = useState([])
@@ -853,6 +978,19 @@ export default function SiteManager() {
     setProjects(prev => prev.map(x => x._id === p._id ? { ...x, isHidden: !x.isHidden } : x))
     toast.success(p.isHidden ? 'Project visible' : 'Project hidden')
   }
+
+  const toggleProjectTrade = async (trade, e) => {
+    e.stopPropagation()
+    const current = (project?.disabledTrades || []).map(String)
+    const tid = String(trade._id)
+    const next = current.includes(tid) ? current.filter(id => id !== tid) : [...current, tid]
+    await adminUpdateProject(pId, { disabledTrades: next })
+    setProject(prev => ({ ...prev, disabledTrades: next }))
+    toast.success(current.includes(tid) ? `${trade.name} enabled for this project` : `${trade.name} disabled for this project`)
+  }
+
+  const isTradeDisabled = (tradeId) =>
+    (project?.disabledTrades || []).some(id => String(id) === String(tradeId))
 
   const delProject = async id => {
     const ok = await confirm('Delete this project?', 'This will permanently remove all floors, locations, and inspections linked to it.')
@@ -928,11 +1066,13 @@ export default function SiteManager() {
   const go = (params) => setSearchParams(params, { replace: true })
   const goProject = (p) => { setProject(p); setFloor(null); setRoom(null); go({ p: p._id }) }
   const goFloor   = (f) => { setFloor(f);   setRoom(null);  go({ p: pId, f: f._id }) }
-  const goRoom    = (r) => { setRoom(r);                    go({ p: pId, f: fId, r: r._id }) }
+  const goTrade   = (t) => { setRoom(null);                 go({ p: pId, f: fId, c: t._id }) }
+  const goRoom    = (r) => { setRoom(r);                    go({ p: pId, f: fId, c: cId, r: r._id }) }
   const goBack    = (level) => {
     if (level === 0) go({})
     else if (level === 1) { setFloor(null); setRoom(null); go({ p: pId }) }
     else if (level === 2) { setRoom(null); go({ p: pId, f: fId }) }
+    else if (level === 3) { setRoom(null); go({ p: pId, f: fId, c: cId }) }
   }
 
   // Load projects + trades once
@@ -975,9 +1115,10 @@ export default function SiteManager() {
   }, [fId])
   useEffect(() => { if (fId) loadRooms() }, [fId])
 
-  const step = rId ? 3 : fId ? 2 : pId ? 1 : 0
+  const step = rId ? 4 : cId ? 3 : fId ? 2 : pId ? 1 : 0
+  const selectedTrade = allTrades.find(t => t._id === cId) || null
 
-  const crumbs = ['All Projects', project?.name, floor?.label, room?.name].slice(0, step + 1).filter(Boolean)
+  const crumbs = ['All Projects', project?.name, floor?.label, selectedTrade?.name, room?.name].slice(0, step + 1).filter(Boolean)
 
   const card = (active) =>
     `group relative flex flex-col gap-1 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
@@ -1012,7 +1153,7 @@ export default function SiteManager() {
         {view === 'structure' && <>
         <div className="flex items-center justify-between gap-3 mb-2">
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Project → Floor → Room → Elements &amp; Checklists → Checkpoint Items
+            Project → Floor → Checklist → Room → Elements &amp; Checkpoints
           </p>
           <div className="flex items-center gap-2">
             {isAdmin && step === 0 && (
@@ -1025,7 +1166,7 @@ export default function SiteManager() {
                 <Plus className="w-4 h-4" /> Add Floor
               </button>
             )}
-            {isAdmin && step === 2 && (
+            {isAdmin && step === 3 && (
               <button onClick={() => { setRoomForm({ name: '', type: 'APARTMENT' }); setRoomModal(true) }} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
                 <Plus className="w-4 h-4" /> Add Room
               </button>
@@ -1119,9 +1260,86 @@ export default function SiteManager() {
           </>
         )}
 
-        {/* ── STEP 2: Rooms ─────────────────────────────────────────────── */}
+        {/* ── STEP 2: Select Checklist ──────────────────────────────────── */}
         {step === 2 && (
           <>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <ClipboardList className="w-3.5 h-3.5 text-orange-400"/> Select Checklist · {allTrades.filter(t => !isTradeDisabled(t._id)).length}/{allTrades.length}
+              </p>
+              <p className="text-[10px] text-gray-400">Click <EyeOff className="w-3 h-3 inline mb-0.5"/> to disable a checklist for this project</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allTrades.map(t => {
+                const disabled = isTradeDisabled(t._id)
+                return (
+                  <div
+                    key={t._id}
+                    className={`flex items-center gap-3 p-4 rounded-xl border transition-all
+                      ${disabled
+                        ? 'border-gray-200 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/40 opacity-50'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                      }`}
+                  >
+                    {/* Click area → navigate */}
+                    <button
+                      onClick={() => !disabled && goTrade(t)}
+                      disabled={disabled}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left group disabled:cursor-not-allowed"
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${!t.color ? 'bg-orange-100 dark:bg-orange-500/20' : ''}`}
+                        style={t.color ? { background: t.color + '33' } : undefined}>
+                        {t.color
+                          ? <span className="w-4 h-4 rounded-full" style={{ background: t.color }} />
+                          : <ClipboardList className={`w-4 h-4 ${disabled ? 'text-gray-400' : 'text-orange-500'}`} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${disabled ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400'}`}>{t.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {disabled
+                            ? <span className="text-[10px] font-semibold text-gray-400">Disabled for project</span>
+                            : <>
+                                {t.isHoldPoint && <span className="text-[10px] font-semibold text-red-500">Hold Point</span>}
+                                {t.isPending && <span className="text-[10px] font-semibold text-amber-500">Pending</span>}
+                                {!t.isHoldPoint && !t.isPending && <span className="text-[10px] text-gray-400">Active</span>}
+                              </>
+                          }
+                        </div>
+                      </div>
+                      {!disabled && <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" />}
+                    </button>
+
+                    {/* Toggle enable/disable */}
+                    <button
+                      onClick={(e) => toggleProjectTrade(t, e)}
+                      title={disabled ? 'Enable for this project' : 'Disable for this project'}
+                      className={`p-1.5 rounded-lg transition-colors flex-shrink-0
+                        ${disabled
+                          ? 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'
+                        }`}
+                    >
+                      {disabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                  </div>
+                )
+              })}
+              {allTrades.length === 0 && <p className="text-xs text-gray-400 p-2">No checklists found. Add them in Checklist Templates tab.</p>}
+            </div>
+          </>
+        )}
+
+        {/* ── STEP 3: Rooms ─────────────────────────────────────────────── */}
+        {step === 3 && (
+          <>
+            {selectedTrade && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl mb-3">
+                {selectedTrade.color && <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: selectedTrade.color }} />}
+                <ClipboardList className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                <span className="text-xs font-bold text-orange-700 dark:text-orange-400">{selectedTrade.name}</span>
+                <span className="text-xs text-gray-400 ml-1">— select a room to manage elements</span>
+              </div>
+            )}
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><DoorOpen className="w-3.5 h-3.5 text-orange-400"/> Rooms / Areas · {rooms.length}</p>
             <div className="space-y-2">
               {rooms.map(r => (
@@ -1154,9 +1372,9 @@ export default function SiteManager() {
           </>
         )}
 
-        {/* ── STEP 3: Room Detail ───────────────────────────────────────── */}
-        {step === 3 && room && project && (
-          <RoomDetail project={project} room={{ ...room, floorId: fId }} allTrades={allTrades} isAdmin={isAdmin} />
+        {/* ── STEP 4: Room Detail ───────────────────────────────────────── */}
+        {step === 4 && room && project && (
+          <RoomDetail project={project} room={{ ...room, floorId: fId }} allTrades={allTrades} isAdmin={isAdmin} defaultTrade={selectedTrade} />
         )}
 
         </>}

@@ -27,10 +27,10 @@ export default function Trades() {
     const r = await adminGetTrades()
     setTrades(r.data)
     const counts = {}
-    await Promise.all(r.data.map(async t => {
+    for (const t of r.data) {
       const c = await adminGetCheckPoints(t._id)
       counts[t._id] = c.data.length
-    }))
+    }
     setCpCounts(counts)
     setLoading(false)
   }
