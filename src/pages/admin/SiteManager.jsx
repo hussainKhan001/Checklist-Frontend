@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/layout/AdminLayout'
 import Modal from '../../components/common/Modal'
 import FormModal from '../../components/ui/FormModal'
@@ -20,7 +20,7 @@ import toast from 'react-hot-toast'
 import {
   Building2, Layers, DoorOpen, ChevronRight, Plus, Pencil,
   Trash2, Check, X, ClipboardList, Zap, ListChecks,
-  Camera, Info, ChevronDown, ChevronUp, Map, Upload, Eye, EyeOff, FileText,
+  Camera, Info, ChevronUp, Map, Upload, Eye, EyeOff, FileText,
   ExternalLink, CheckSquare, Settings2,
 } from 'lucide-react'
 
@@ -164,7 +164,7 @@ function AddRow({ fields, onAdd, placeholder }) {
 }
 
 // ── Checkpoint editor ─────────────────────────────────────────────────────────
-function CheckpointPanel({ tradeId, projectId, projectName, tradeName }) {
+function CheckpointPanel({ tradeId, projectId, projectName, tradeName, onCountChange }) {
   const confirm = useConfirm()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -180,6 +180,7 @@ function CheckpointPanel({ tradeId, projectId, projectName, tradeName }) {
       const res = await adminGetCheckPoints(tradeId, projectId)
       setIsGlobal(res.data.some(cp => !cp.projectId))
       setItems(res.data)
+      onCountChange?.(res.data.length)
     } finally { setLoading(false) }
   }, [tradeId, projectId])
 
@@ -273,19 +274,47 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
   const [expandedTE, setExpandedTE] = useState({})
 
   const [elemModal, setElemModal] = useState(false)
-  const [elemForm, setElemForm] = useState({ name: '', type: 'WALL', order: '' })
+  const [elemForm, setElemForm] = useState({ name: '', type: 'WALL' })
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkNames, setBulkNames] = useState('')
+  const [bulkType, setBulkType] = useState('WALL')
+  const [bulkSaving, setBulkSaving] = useState(false)
 
   const saveElement = async () => {
     if (!elemForm.name.trim()) return toast.error('Name required.')
-    await adminCreateElement({ 
-      name: elemForm.name.trim(), 
-      type: elemForm.type || 'WALL', 
-      order: Number(elemForm.order) || elements.length + 1, 
-      locationId: room._id, 
-      floorId: room.floorId, 
-      projectId: project._id 
+    await adminCreateElement({
+      name: elemForm.name.trim(),
+      type: elemForm.type || 'WALL',
+      order: elements.length + 1,
+      locationId: room._id,
+      floorId: room.floorId,
+      projectId: project._id
     })
     await loadRoom(); setElemModal(false); toast.success('Element added.')
+  }
+
+  const saveBulkElements = async () => {
+    const names = bulkNames.split('\n').map(n => n.trim()).filter(Boolean)
+    if (!names.length) return toast.error('Paste at least one name.')
+    setBulkSaving(true)
+    let added = 0
+    for (let i = 0; i < names.length; i++) {
+      await adminCreateElement({
+        name: names[i],
+        type: bulkType,
+        order: elements.length + i + 1,
+        locationId: room._id,
+        floorId: room.floorId,
+        projectId: project._id,
+      })
+      added++
+    }
+    await loadRoom()
+    setBulkSaving(false)
+    setBulkNames('')
+    setBulkMode(false)
+    setElemModal(false)
+    toast.success(`${added} elements added.`)
   }
 
   const loadRoom = useCallback(async () => {
@@ -310,9 +339,16 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
     return Object.entries(counts).map(([t, n]) => `${n} ${ELEM_LABEL[t] || t}`).join(', ') || 'No elements'
   }
 
-  const unassignedCount = bulkTrade
-    ? elements.filter(el => !tradeElements.some(te => String(te.elementId?._id || te.elementId) === String(el._id) && String(te.tradeId?._id || te.tradeId) === String(bulkTrade))).length
-    : 0
+  const getUnassignedCount = (tradeId) =>
+    elements.filter(el => !tradeElements.some(te =>
+      String(te.elementId?._id || te.elementId) === String(el._id) &&
+      String(te.tradeId?._id || te.tradeId) === String(tradeId)
+    )).length
+
+  const unassignedCount = bulkTrade ? getUnassignedCount(bulkTrade) : 0
+
+  // Only show checklists that still have at least 1 unassigned element
+  const assignableTrades = allTrades.filter(t => elements.length === 0 || getUnassignedCount(t._id) > 0)
 
   const bulkAssign = async () => {
     if (!bulkTrade || unassignedCount === 0) return
@@ -380,7 +416,6 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
               fields={[
                 { key: 'name', label: 'Element Name', placeholder: 'e.g. C 001' },
                 { key: 'type', label: 'Type', type: 'select', options: ELEM_TYPES.map(t => ({ value: t, label: ELEM_LABEL[t] })) },
-                { key: 'order', label: 'Order', placeholder: '1' },
               ]}
               onSave={async (id, form) => {
                 await adminUpdateElement(id, { ...form, locationId: room._id })
@@ -394,12 +429,52 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
           {elements.length === 0 && <p className="text-xs text-gray-400 py-4 text-center">No elements added yet.</p>}
 
           {elemModal && (
-            <FormModal title="Add Element" onClose={() => setElemModal(false)} onSave={saveElement}>
-              <InputField label="Element Name" required value={elemForm.name} onChange={e => setElemForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. C 001" />
-              <InputField label="Type" required as="select" value={elemForm.type} onChange={e => setElemForm(f => ({ ...f, type: e.target.value }))}>
-                {ELEM_TYPES.map(t => <option key={t} value={t}>{ELEM_LABEL[t]}</option>)}
-              </InputField>
-              <InputField label="Order" type="number" value={elemForm.order} onChange={e => setElemForm(f => ({ ...f, order: e.target.value }))} placeholder="1" />
+            <FormModal
+              title="Add Element"
+              onClose={() => { setElemModal(false); setBulkMode(false); setBulkNames('') }}
+              onSave={bulkMode ? saveBulkElements : saveElement}
+              saveLabel={bulkMode ? (bulkSaving ? 'Adding…' : `Add ${bulkNames.split('\n').filter(l => l.trim()).length || 0} Elements`) : 'Save'}
+              saving={bulkSaving}
+            >
+              {/* Mode toggle */}
+              <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-1">
+                <button type="button" onClick={() => setBulkMode(false)}
+                  className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${!bulkMode ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                  Single
+                </button>
+                <button type="button" onClick={() => setBulkMode(true)}
+                  className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${bulkMode ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                  Bulk Add
+                </button>
+              </div>
+
+              {bulkMode ? (
+                <>
+                  <InputField label="Type" required as="select" value={bulkType} onChange={e => setBulkType(e.target.value)}>
+                    {ELEM_TYPES.map(t => <option key={t} value={t}>{ELEM_LABEL[t]}</option>)}
+                  </InputField>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Element Names <span className="text-gray-400 font-normal">(one per line)</span>
+                    </label>
+                    <textarea
+                      className={inp + ' font-mono text-xs'}
+                      rows={10}
+                      value={bulkNames}
+                      onChange={e => setBulkNames(e.target.value)}
+                      placeholder={'RB001\nRB002\nRB003\n...'}
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">{bulkNames.split('\n').filter(l => l.trim()).length} elements to add</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <InputField label="Element Name" required value={elemForm.name} onChange={e => setElemForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. C 001" />
+                  <InputField label="Type" required as="select" value={elemForm.type} onChange={e => setElemForm(f => ({ ...f, type: e.target.value }))}>
+                    {ELEM_TYPES.map(t => <option key={t} value={t}>{ELEM_LABEL[t]}</option>)}
+                  </InputField>
+                </>
+              )}
             </FormModal>
           )}
         </div>
@@ -414,19 +489,36 @@ function RoomDetail({ project, room, allTrades, isAdmin }) {
             {/* Bulk assign */}
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-500/10 dark:to-amber-500/10 border border-orange-200 dark:border-orange-500/30 rounded-xl p-4">
               <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5"/> Assign to All {elements.length} Elements
+                <Zap className="w-3.5 h-3.5"/>
+                {bulkTrade
+                  ? `Assign to ${unassignedCount} unassigned element${unassignedCount !== 1 ? 's' : ''}`
+                  : `Bulk Assign — ${elements.length} element${elements.length !== 1 ? 's' : ''} in room`}
               </p>
-              <select className={sel} value={bulkTrade} onChange={e => setBulkTrade(e.target.value)}>
-                <option value="">— select checklist —</option>
-                {allTrades.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </select>
-              {bulkTrade && unassignedCount === 0
-                ? <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check className="w-3.5 h-3.5"/>Already assigned to all elements.</p>
-                : <button onClick={bulkAssign} disabled={!bulkTrade || bulking} className="mt-2 w-full py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
-                    <Zap className="w-3.5 h-3.5"/>
-                    {bulking ? 'Assigning…' : bulkTrade ? `Assign to ${unassignedCount} element(s)` : 'Select checklist above'}
-                  </button>
-              }
+              {elements.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-2">
+                  No elements in this room yet. Go to <strong className="text-gray-300">Structural Elements</strong> tab to add elements first.
+                </p>
+              ) : (
+                <>
+                  <select className={sel} value={bulkTrade} onChange={e => setBulkTrade(e.target.value)}>
+                    <option value="">— select checklist —</option>
+                    {assignableTrades.map(t => {
+                      const remaining = getUnassignedCount(t._id)
+                      return <option key={t._id} value={t._id}>{t.name} ({remaining} left)</option>
+                    })}
+                    {assignableTrades.length === 0 && (
+                      <option disabled>✓ All checklists fully assigned</option>
+                    )}
+                  </select>
+                  {bulkTrade && unassignedCount === 0
+                    ? <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check className="w-3.5 h-3.5"/>Already assigned to all {elements.length} elements.</p>
+                    : <button onClick={bulkAssign} disabled={!bulkTrade || bulking} className="mt-2 w-full py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
+                        <Zap className="w-3.5 h-3.5"/>
+                        {bulking ? 'Assigning…' : bulkTrade ? `Assign to ${unassignedCount} element(s)` : 'Select checklist above'}
+                      </button>
+                  }
+                </>
+              )}
             </div>
 
             {/* Assigned list */}
@@ -502,6 +594,7 @@ const BLANK_TRADE = { name: '', order: 0, isHoldPoint: false, isPending: false, 
 
 function TemplatesView({ isAdmin }) {
   const confirm = useConfirm()
+  const navigate = useNavigate()
   const [trades, setTrades] = useState([])
   const [cpCounts, setCpCounts] = useState({})
   const [loading, setLoading] = useState(true)
@@ -530,7 +623,7 @@ function TemplatesView({ isAdmin }) {
     if (!form.name.trim()) return setError('Name is required.')
     setSaving(true); setError('')
     try {
-      modal === 'add' ? await adminCreateTrade(form) : await adminUpdateTrade(modal, form)
+      modal === 'add' ? await adminCreateTrade({ ...form, order: trades.length + 1 }) : await adminUpdateTrade(modal, form)
       setModal(null); load()
       toast.success(modal === 'add' ? 'Checklist created' : 'Checklist updated')
     } catch (e) { setError(e.response?.data?.message || 'Save failed.') }
@@ -606,7 +699,14 @@ function TemplatesView({ isAdmin }) {
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{cpCounts[t._id] ?? '…'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      {isAdmin && <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition"><Pencil className="w-3.5 h-3.5" /></button>}
+                      <button
+                        onClick={() => navigate(`/trades/${t._id}/checkpoints`)}
+                        title="Manage checkpoint items"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      {isAdmin && <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition"><Pencil className="w-3.5 h-3.5" /></button>}
                       {isAdmin && (
                         <button onClick={() => toggleHide(t)} title={t.isHidden ? 'Enable globally' : 'Disable globally'} className={`p-1.5 rounded-lg transition ${t.isHidden ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
                           {t.isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -636,15 +736,9 @@ function TemplatesView({ isAdmin }) {
         >
           {error && <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600">{error}</div>}
           <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-3">
-              <div className="col-span-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name *</label>
-                <input className={iCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Brick / Block Masonry" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Order</label>
-                <input className={iCls} type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))} />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name *</label>
+              <input className={iCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Brick / Block Masonry" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Color</label>
@@ -997,7 +1091,6 @@ export default function SiteManager() {
                   fields={[
                     { key: 'code', label: 'Code', placeholder: 'e.g. BSMT' },
                     { key: 'label', label: 'Label', placeholder: 'e.g. Basement' },
-                    { key: 'order', label: 'Order', placeholder: '1' },
                     { key: 'isProjectLevel', label: 'Project-level floor', type: 'checkbox' },
                   ]}
                   onSave={async (id, form) => {
@@ -1087,7 +1180,6 @@ export default function SiteManager() {
         <FormModal title="Add Floor" onClose={() => setFloorModal(false)} onSave={saveFloor}>
           <InputField label="Floor Code" required value={floorForm.code} onChange={e => setFloorForm(f => ({ ...f, code: e.target.value }))} placeholder="e.g. BSMT" />
           <InputField label="Floor Label" required value={floorForm.label} onChange={e => setFloorForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Basement" />
-          <InputField label="Order" type="number" value={floorForm.order} onChange={e => setFloorForm(f => ({ ...f, order: e.target.value }))} placeholder="1" />
         </FormModal>
       )}
 

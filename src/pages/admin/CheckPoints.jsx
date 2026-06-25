@@ -353,15 +353,6 @@ export default function CheckPoints() {
                   placeholder="Brick soaking before use"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Order</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  value={form.order}
-                  onChange={e => setForm(f => ({ ...f, order: +e.target.value }))}
-                />
-              </div>
             </div>
 
             <div>

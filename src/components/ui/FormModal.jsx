@@ -1,6 +1,6 @@
 ﻿import Modal from '../common/Modal'
 
-export default function FormModal({ title, onClose, onSave, saving, error, children }) {
+export default function FormModal({ title, onClose, onSave, saving, saveLabel, error, children }) {
   return (
     <Modal
       title={title}
@@ -18,7 +18,7 @@ export default function FormModal({ title, onClose, onSave, saving, error, child
             disabled={saving}
             className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 rounded-lg shadow-sm shadow-orange-500/30 transition-colors"
           >
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving…' : (saveLabel || 'Save')}
           </button>
         </div>
       }

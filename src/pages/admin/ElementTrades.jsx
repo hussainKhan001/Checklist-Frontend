@@ -204,13 +204,9 @@ export default function ElementTrades() {
             )}
             <div className="space-y-4">
               <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-3">
+                <div className="col-span-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Trade Name *</label>
                   <input className={inputCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Column Formwork, Wall Plastering" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Order</label>
-                  <input className={inputCls} type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))} />
                 </div>
               </div>
               <div>

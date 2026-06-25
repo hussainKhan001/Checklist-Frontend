@@ -163,13 +163,9 @@ export default function Trades() {
             {error && <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">{error}</div>}
             <div className="space-y-4">
               <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-3">
+                <div className="col-span-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Trade Name *</label>
                   <input className={inputCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Brick / Block Masonry" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Order</label>
-                  <input className={inputCls} type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: +e.target.value }))} />
                 </div>
               </div>
               <div>
