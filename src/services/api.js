@@ -2,7 +2,8 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
-  timeout: 15000,
+  timeout: 10000,
+  headers: { 'Accept-Encoding': 'gzip, deflate, br' },
 })
 
 // ── Request: attach JWT ───────────────────────────────────────────────────────
@@ -125,3 +126,21 @@ export const adminGetMilestones       = (projectId) => api.get('/admin/progress/
 export const adminCreateMilestone     = (data)      => api.post('/admin/progress/milestones', data)
 export const adminUpdateMilestone     = (id, data)  => api.put(`/admin/progress/milestones/${id}`, data)
 export const adminDeleteMilestone     = (id)        => api.delete(`/admin/progress/milestones/${id}`)
+
+// ── Contractor Reports ─────────────────────────────────────────────────────────
+export const submitContractorReport      = (data)               => api.post('/contractor-reports', data)
+export const adminGetContractorReports   = (params = {}, signal) => api.get('/admin/contractor-reports', { params, signal })
+export const adminUpdateContractorReport = (id, data)           => api.patch(`/contractor-reports/${id}`, data)
+export const adminDeleteContractorReport = (id)                 => api.delete(`/admin/contractor-reports/${id}`)
+
+// ── Drawing Requests ───────────────────────────────────────────────────────────
+export const submitDrawingRequest        = (data)               => api.post('/drawing-requests', data)
+export const adminGetDrawingRequests     = (params = {}, signal) => api.get('/drawing-requests', { params, signal })
+export const adminUpdateDrawingRequest   = (id, data)           => api.patch(`/drawing-requests/${id}`, data)
+export const adminDeleteDrawingRequest   = (id)                 => api.delete(`/drawing-requests/${id}`)
+
+// ── Daily Site Reports ─────────────────────────────────────────────────────────
+export const submitDailySiteReport       = (data)               => api.post('/site-reports', data)
+export const adminGetDailySiteReports    = (params = {}, signal) => api.get('/site-reports', { params, signal })
+export const adminUpdateDailySiteReport  = (id, data)           => api.patch(`/site-reports/${id}`, data)
+export const adminDeleteDailySiteReport  = (id)                 => api.delete(`/site-reports/${id}`)

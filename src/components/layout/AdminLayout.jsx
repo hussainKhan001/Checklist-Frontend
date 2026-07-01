@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ClipboardList, Users,
   ArrowLeft, LogOut, Menu, Building2, ShieldCheck, LayoutGrid,
   Sun, Moon, ExternalLink, TrendingUp,
-  Settings2,
+  Settings2, HardHat, Globe, PenLine, FileText,
 } from 'lucide-react'
 
 const ALL_NAV = [
@@ -14,8 +14,12 @@ const ALL_NAV = [
   { to: '/checklist',   label: 'Overview Matrix',   icon: LayoutGrid,      permission: 'view_inspections'    },
   { to: '/progress',    label: 'Site Progress',     icon: TrendingUp,      permission: 'view_inspections'    },
   { to: '/manage',      label: 'Site Manager',      icon: Settings2,       permission: 'view_trades'         },
+  { to: '/labour-reports',    label: 'Labour Reports',   icon: HardHat,   permission: 'view_inspections'    },
+  { to: '/drawing-requests',  label: 'Drawing Requests', icon: PenLine,   permission: 'view_inspections'    },
+  { to: '/site-reports',      label: 'Site Reports',     icon: FileText,  permission: 'view_inspections'    },
   { to: '/users',       label: 'Users',             icon: Users,           permission: 'manage_users'        },
   { to: '/roles',       label: 'Roles',             icon: ShieldCheck,     permission: 'manage_roles'        },
+  { to: '/public-portal', label: 'Public Portal',  icon: Globe                                                 },
 ]
 
 const ROLE_CHIP_CLS = [

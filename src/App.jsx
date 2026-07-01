@@ -27,6 +27,13 @@ import Roles from './pages/admin/Roles'
 import ChecklistMatrix from './pages/admin/ChecklistMatrix'
 import SiteProgress from './pages/admin/SiteProgress'
 import Profile from './pages/admin/Profile'
+import ContractorReport from './pages/ContractorReport'
+import ContractorReports from './pages/admin/ContractorReports'
+import PublicPortal from './pages/PublicPortal'
+import DrawingRequestForm from './pages/DrawingRequestForm'
+import DrawingRequests from './pages/admin/DrawingRequests'
+import DailySiteReportForm from './pages/DailySiteReportForm'
+import DailySiteReports from './pages/admin/DailySiteReports'
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
@@ -71,6 +78,9 @@ export default function App() {
           <Route path="/trades/:tradeId/elements"          element={<ProtectedRoute permission="view_trades">              <TradeElements />   </ProtectedRoute>} />
           <Route path="/users"                             element={<ProtectedRoute permission="manage_users">             <Users />           </ProtectedRoute>} />
           <Route path="/roles"                             element={<ProtectedRoute permission="manage_roles">             <Roles />           </ProtectedRoute>} />
+          <Route path="/labour-reports"               element={<ProtectedRoute permission="view_inspections">         <ContractorReports /></ProtectedRoute>} />
+          <Route path="/drawing-requests"            element={<ProtectedRoute permission="view_inspections">         <DrawingRequests />  </ProtectedRoute>} />
+          <Route path="/site-reports"               element={<ProtectedRoute permission="view_inspections">         <DailySiteReports /> </ProtectedRoute>} />
 
           {/* ── Public inspection form — no login required ────────────────── */}
           <Route path="/*" element={
@@ -84,6 +94,10 @@ export default function App() {
                   <Route path="/p/:projectId/f/:floorId/l/:locationId"                  element={<SelectTrade />}         />
                   <Route path="/p/:projectId/f/:floorId/l/:locationId/t/:tradeId"       element={<SelectElementForTrade />}/>
                   <Route path="/c/:tradeId"                                              element={<ChecklistForm />}       />
+                  <Route path="/labour-form"                                              element={<ContractorReport />}    />
+                  <Route path="/public-portal"                                           element={<PublicPortal />}        />
+                  <Route path="/drawing-request-form"                                    element={<DrawingRequestForm />}  />
+                  <Route path="/site-report-form"                                        element={<DailySiteReportForm />} />
                 </Routes>
               </main>
               <Footer />
