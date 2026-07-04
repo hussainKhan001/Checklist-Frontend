@@ -14,6 +14,11 @@ export const PERMISSIONS = [
   { key: 'view_sites',         group: 'Site Flow',             label: 'Browse Site Structure',                 type: 'read'  },
   { key: 'submit_forms',       group: 'Site Flow',             label: 'Create & Submit Inspections',           type: 'write' },
   { key: 'upload_photo',       group: 'Site Flow',             label: 'Upload Inspection Photos',              type: 'write' },
+  { key: 'assign_drawing_requests',   group: 'Drawing Requests', label: 'Assign Drawing Requests (Assigned To)',      type: 'write' },
+  { key: 'manage_drawing_commitment', group: 'Drawing Requests', label: 'Set Committed & Actual Completion Dates',    type: 'write' },
+  { key: 'verify_drawing_plan',       group: 'Drawing Requests', label: 'Verify Drawing Plan',                        type: 'write' },
+  { key: 'set_drawing_priority',      group: 'Drawing Requests', label: 'Set Drawing Priority',                       type: 'write' },
+  { key: 'acknowledge_drawing_plan',  group: 'Drawing Requests', label: 'Acknowledge Drawing Plan',                   type: 'write' },
 ]
 
 // ── Sections (feature-area grouping for the permission matrix UI) ─────────────
@@ -47,6 +52,11 @@ export const PERMISSION_SECTIONS = [
     key: 'site',
     label: 'Site Flow',
     permissions: PERMISSIONS.filter(p => p.group === 'Site Flow'),
+  },
+  {
+    key: 'drawing-requests',
+    label: 'Drawing Requests',
+    permissions: PERMISSIONS.filter(p => p.group === 'Drawing Requests'),
   },
 ]
 

@@ -17,6 +17,7 @@ import {
 } from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
 import { useAuth } from '../../context/AuthContext'
+import { compressImage } from '../../utils/compressImage'
 import toast from 'react-hot-toast'
 import {
   Building2, Layers, DoorOpen, ChevronRight, Plus, Pencil,
@@ -1007,7 +1008,7 @@ export default function SiteManager() {
     if (!file) return
     setMapUploading(true)
     try {
-      const fd = new FormData(); fd.append('photo', file)
+      const fd = new FormData(); fd.append('photo', mapIsNewPdf ? file : await compressImage(file, 2000, 0.85))
       const { data } = await uploadPhoto(fd)
       await adminUpdateProject(mapProject._id, { mapImage: data.url })
       setProjects(prev => prev.map(p => p._id === mapProject._id ? { ...p, mapImage: data.url } : p))
@@ -1038,7 +1039,7 @@ export default function SiteManager() {
     }
     setFloorMapUploading(true)
     try {
-      const fd = new FormData(); fd.append('photo', file)
+      const fd = new FormData(); fd.append('photo', floorMapIsNewPdf ? file : await compressImage(file, 2000, 0.85))
       const { data } = await uploadPhoto(fd)
       const newMap = { name: floorMapName, url: data.url }
       const newMaps = [...(floorMapFloor.maps || []), newMap]

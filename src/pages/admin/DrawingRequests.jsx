@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import axios from 'axios'
 import AdminLayout from '../../components/layout/AdminLayout'
-import { adminGetDrawingRequests, adminUpdateDrawingRequest, adminDeleteDrawingRequest } from '../../services/api'
+import { adminGetDrawingRequests, adminUpdateDrawingRequest, adminDeleteDrawingRequest, adminGetUsersLite } from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
+import { usePermission } from '../../hooks/usePermission'
 import Drawer, { DetailRow } from '../../components/common/Drawer'
 import { PenLine, Search, Trash2, ChevronLeft, ChevronRight, X, Eye, Pencil, Loader2 } from 'lucide-react'
 import CustomSelect from '../../components/ui/CustomSelect'
@@ -18,12 +19,19 @@ const SOURCE_OPTIONS = ['External Consultant','Internal','Client','Architect','G
 export default function DrawingRequests() {
   const confirm = useConfirm()
 
+  const canAssign  = usePermission('assign_drawing_requests')
+  const canCommit  = usePermission('manage_drawing_commitment')
+  const canVerify  = usePermission('verify_drawing_plan')
+  const canPrioritize = usePermission('set_drawing_priority')
+  const canAcknowledge = usePermission('acknowledge_drawing_plan')
+
   const [data, setData]       = useState([])
   const [total, setTotal]     = useState(0)
   const [pages, setPages]     = useState(1)
   const [page, setPage]       = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
+  const [users, setUsers]     = useState([])
   const abortRef = useRef(null)
 
   const [viewRec, setViewRec]   = useState(null)
@@ -31,6 +39,10 @@ export default function DrawingRequests() {
   const [editForm, setEditForm] = useState({})
 
   const [filters, setFilters] = useState({ project: '', drawingType: '', status: '', priority: '', from: '', to: '' })
+
+  useEffect(() => {
+    if (canAssign) adminGetUsersLite().then(res => setUsers(res.data || [])).catch(() => {})
+  }, [canAssign])
 
   const load = useCallback(async (pg = 1, f = filters) => {
     abortRef.current?.abort()
@@ -364,42 +376,72 @@ export default function DrawingRequests() {
               </EField>
             </Section>
 
-            <Section label="AGM Response">
-              <EField label="Assigned To">
-                <input value={editForm.assignedTo} onChange={e => ef('assignedTo', e.target.value)} className={eInput} placeholder="Planning team member" />
-              </EField>
-              <EField label="Committed Date">
-                <input type="date" value={editForm.committedDate} onChange={e => ef('committedDate', e.target.value)} className={eInput} />
-              </EField>
-            </Section>
+            {(canAssign || canCommit) && (
+              <Section label="AGM Response">
+                {canAssign && (
+                  <EField label="Assigned To">
+                    <CustomSelect
+                      value={editForm.assignedTo}
+                      onChange={v => ef('assignedTo', v)}
+                      options={users.map(u => u.name)}
+                      emptyLabel="— Unassigned —"
+                      placeholder="Choose employee"
+                      accent="violet"
+                    />
+                  </EField>
+                )}
+                {canCommit && (
+                  <EField label="Committed Date">
+                    <input type="date" value={editForm.committedDate} onChange={e => ef('committedDate', e.target.value)} className={eInput} />
+                  </EField>
+                )}
+              </Section>
+            )}
 
-            <Section label="GM — Priority">
-              <EField label="Priority">
-                <CustomSelect value={editForm.priority} onChange={v => ef('priority', v)} options={PRIORITIES} emptyLabel="— Not set —" accent="violet" />
-              </EField>
-            </Section>
+            {canPrioritize && (
+              <Section label="GM — Priority">
+                <EField label="Priority">
+                  <CustomSelect value={editForm.priority} onChange={v => ef('priority', v)} options={PRIORITIES} emptyLabel="— Not set —" accent="violet" />
+                </EField>
+              </Section>
+            )}
 
             <Section label="Planning — Status">
               <EField label="Status">
                 <CustomSelect value={editForm.status} onChange={v => ef('status', v)} options={STATUSES} accent="violet" />
               </EField>
-              <EField label="Actual Completion">
-                <input type="date" value={editForm.actualCompletion} onChange={e => ef('actualCompletion', e.target.value)} className={eInput} />
-              </EField>
+              {canCommit && (
+                <EField label="Actual Completion">
+                  <input type="date" value={editForm.actualCompletion} onChange={e => ef('actualCompletion', e.target.value)} className={eInput} />
+                </EField>
+              )}
+              {editForm.committedDate && editForm.actualCompletion && (
+                <EField label="Delay">
+                  <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                    {Math.max(0, Math.floor((new Date(editForm.actualCompletion) - new Date(editForm.committedDate)) / 86400000))} day(s) — auto-calculated
+                  </div>
+                </EField>
+              )}
             </Section>
 
-            <Section label="Verification">
-              <div className="flex gap-5">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={editForm.planningVerified} onChange={e => ef('planningVerified', e.target.checked)} className="w-4 h-4 rounded accent-violet-600" />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">Planning Verified</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={editForm.projectAcknowledged} onChange={e => ef('projectAcknowledged', e.target.checked)} className="w-4 h-4 rounded accent-violet-600" />
-                  <span className="text-xs text-gray-700 dark:text-gray-300">Project Acknowledged</span>
-                </label>
-              </div>
-            </Section>
+            {(canVerify || canAcknowledge) && (
+              <Section label="Verification">
+                <div className="flex gap-5">
+                  {canVerify && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={editForm.planningVerified} onChange={e => ef('planningVerified', e.target.checked)} className="w-4 h-4 rounded accent-violet-600" />
+                      <span className="text-xs text-gray-700 dark:text-gray-300">Planning Verified</span>
+                    </label>
+                  )}
+                  {canAcknowledge && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={editForm.projectAcknowledged} onChange={e => ef('projectAcknowledged', e.target.checked)} className="w-4 h-4 rounded accent-violet-600" />
+                      <span className="text-xs text-gray-700 dark:text-gray-300">Project Acknowledged</span>
+                    </label>
+                  )}
+                </div>
+              </Section>
+            )}
 
             <EField label="Remarks">
               <input value={editForm.remarks} onChange={e => ef('remarks', e.target.value)} className={eInput} placeholder="Optional remarks" />

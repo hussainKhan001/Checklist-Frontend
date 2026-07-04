@@ -3,12 +3,24 @@ import ConfirmModal from '../components/common/ConfirmModal'
 
 const ConfirmContext = createContext(null)
 
-export function ConfirmProvider({ children }) {
-  const [state, setState] = useState({ open: false, message: '', description: '', danger: true, resolve: null })
+const INITIAL_STATE = { open: false, message: '', description: '', danger: true, confirmLabel: 'Delete', resolve: null }
 
-  const confirm = useCallback((message, description = '', danger = true) =>
-    new Promise(resolve => setState({ open: true, message, description, danger, resolve }))
-  , [])
+export function ConfirmProvider({ children }) {
+  const [state, setState] = useState(INITIAL_STATE)
+
+  // Accepts either confirm(message, description, danger) or confirm({ title, message, confirmLabel, variant })
+  const confirm = useCallback((arg, description = '', danger = true) => {
+    const opts = typeof arg === 'object' && arg !== null
+      ? {
+          message: arg.title || arg.message,
+          description: arg.title ? arg.message : (arg.description || ''),
+          danger: arg.variant ? arg.variant === 'danger' : (arg.danger ?? true),
+          confirmLabel: arg.confirmLabel || 'Delete',
+        }
+      : { message: arg, description, danger, confirmLabel: 'Delete' }
+
+    return new Promise(resolve => setState({ open: true, ...opts, resolve }))
+  }, [])
 
   const handleConfirm = () => { state.resolve(true); setState(s => ({ ...s, open: false })) }
   const handleCancel = () => { state.resolve(false); setState(s => ({ ...s, open: false })) }
@@ -21,6 +33,7 @@ export function ConfirmProvider({ children }) {
         message={state.message}
         description={state.description}
         danger={state.danger}
+        confirmLabel={state.confirmLabel}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />

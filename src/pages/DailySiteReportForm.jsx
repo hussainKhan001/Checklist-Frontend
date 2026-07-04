@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ClipboardList, CheckCircle2, Loader2, Camera, X } from 'lucide-react'
 import { submitDailySiteReport, uploadPhoto, getProjects } from '../services/api'
 import CustomSelect from '../components/ui/CustomSelect'
+import { compressImage } from '../utils/compressImage'
 
 const DRI_OPTIONS = [
   'Site Manager', 'Architect', 'Structural Engineer',
@@ -47,7 +48,7 @@ export default function DailySiteReportForm() {
     await Promise.all(list.map(async (file, i) => {
       try {
         const fd = new FormData()
-        fd.append('photo', file)
+        fd.append('photo', await compressImage(file))
         const res = await uploadPhoto(fd)
         const url = res.data?.url || res.data?.secure_url || ''
         setPhotos(prev => {

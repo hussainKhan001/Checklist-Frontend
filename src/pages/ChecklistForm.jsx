@@ -11,32 +11,11 @@ import {
   RefreshCw, Save, Clock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { compressImage } from '../utils/compressImage'
 
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''
-
-// Compress image client-side before upload (max 1280px, 75% JPEG quality)
-const compressImage = (file, maxPx = 1280, quality = 0.75) =>
-  new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width  = Math.round(img.width  * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob(
-        blob => resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })),
-        'image/jpeg',
-        quality
-      )
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) } // fallback: upload original
-    img.src = url
-  })
 
 export default function ChecklistForm() {
   const { tradeId } = useParams()
@@ -82,7 +61,19 @@ export default function ChecklistForm() {
   const [isLockedToday, setIsLockedToday]         = useState(false) // today already submitted → read-only
 
   // ── Load context data ────────────────────────────────────────────────────────
+  // All 9 requests (context + draft/duplicate checks) fire in a single wave —
+  // the draft/prev/duplicate checks don't depend on the context data, only on
+  // URL params, so there's no reason to wait for one round-trip before firing
+  // the next. Each of the three "optional" calls already swallows its own
+  // failure below, so merging them in doesn't change error-handling semantics.
   useEffect(() => {
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const hasElement = elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== ''
+    const prevParams  = { locationId, tradeId, status: 'SUBMITTED', ...(hasElement ? { elementId } : {}) }
+    const dupParams   = { locationId, tradeId, date: today,         ...(hasElement ? { elementId } : {}) }
+    const draftParams = { locationId, tradeId, date: today,         ...(hasElement ? { elementId } : {}) }
+
     Promise.all([
       getProject(projectId),
       getFloor(floorId),
@@ -90,8 +81,11 @@ export default function ChecklistForm() {
       getTrade(tradeId),
       getCheckPoints(tradeId, projectId, elementId || null),
       elementId ? getElements(locationId) : Promise.resolve({ data: [] }),
+      getDraftInspection(draftParams).catch(() => ({ data: { found: false } })),
+      getInspections(prevParams).catch(() => ({ data: [] })),
+      checkDuplicateInspection(dupParams).catch(() => ({ data: { exists: false } })),
     ])
-      .then(([pRes, fRes, lRes, tRes, cpRes, eRes]) => {
+      .then(([pRes, fRes, lRes, tRes, cpRes, eRes, draftRes, prevRes, dupRes]) => {
         setProject(pRes.data)
         setFloor(fRes.data)
         setLocation(lRes.data.find(l => l._id === locationId) || null)
@@ -101,34 +95,17 @@ export default function ChecklistForm() {
         const initial = {}
         cpRes.data.forEach(cp => { initial[cp._id] = 'PENDING' })
         setResults(initial)
-        initDraft()
+        applyDraftState(draftRes, prevRes, dupRes)
       })
       .catch(() => setError('Failed to load checklist.'))
       .finally(() => setLoading(false))
   }, [projectId, floorId, locationId, tradeId])
 
-  // ── Init: check for today's DRAFT to resume + any previous SUBMITTED ────────
-  const initDraft = async () => {
-    const now = new Date()
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const params = { locationId, tradeId, date: today }
-    if (elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== '') {
-      params.elementId = elementId
-    }
+  // ── Apply today's DRAFT to resume + any previous SUBMITTED (data already fetched above) ────
+  const applyDraftState = (draftRes, prevRes, dupRes) => {
     try {
-      // Run all checks in parallel
-      const prevParams = { locationId, tradeId, status: 'SUBMITTED' }
-      const dupParams  = { locationId, tradeId, date: today }
-      if (elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== '') {
-        prevParams.elementId = elementId
-        dupParams.elementId  = elementId
-      }
-      const [draftRes, prevRes, dupRes] = await Promise.all([
-        getDraftInspection(params).catch(() => ({ data: { found: false } })),
-        getInspections(prevParams).catch(() => ({ data: [] })),
-        checkDuplicateInspection(dupParams).catch(() => ({ data: { exists: false } })),
-      ])
-
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const allSubmitted   = Array.isArray(prevRes.data) ? prevRes.data : []
       const lastSubmission = allSubmitted[0] // newest (any date), for pre-fill
       const submittedToday = dupRes.data.exists // server confirmed today's submission exists

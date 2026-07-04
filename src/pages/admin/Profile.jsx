@@ -2,6 +2,7 @@
 import AdminLayout from '../../components/layout/AdminLayout'
 import { useAuth } from '../../context/AuthContext'
 import { updateProfile, updatePassword, uploadAvatar } from '../../services/api'
+import { compressImage } from '../../utils/compressImage'
 import { Camera, Mail, ShieldCheck, Save, Lock, Eye, EyeOff, User } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -35,7 +36,7 @@ export default function Profile() {
     const file = e.target.files?.[0]
     if (!file) return
     const fd = new FormData()
-    fd.append('avatar', file)
+    fd.append('avatar', await compressImage(file, 512, 0.85))
     setAvatarLoading(true)
     try {
       const res = await uploadAvatar(fd)

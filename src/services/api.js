@@ -108,6 +108,7 @@ export const adminDeleteInspection   = (id)       => api.delete(`/admin/inspecti
 export const adminGetMatrix        = (params)    => api.get('/admin/matrix',         { params: { ...params, _t: Date.now() } })
 export const adminGetProjectMatrix = (projectId) => api.get('/admin/project-matrix', { params: { projectId, _t: Date.now() } })
 
+export const adminGetUsersLite = () => api.get('/admin/users-lite')
 export const adminGetUsers = () => api.get('/admin/users')
 export const adminCreateUser = (data) => api.post('/admin/users', data)
 export const adminUpdateUser = (id, data) => api.put(`/admin/users/${id}`, data)

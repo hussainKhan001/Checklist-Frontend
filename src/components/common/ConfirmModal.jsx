@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
 
-export default function ConfirmModal({ isOpen, message, description, onConfirm, onCancel, danger = true }) {
+export default function ConfirmModal({ isOpen, message, description, onConfirm, onCancel, danger = true, confirmLabel = 'Delete' }) {
   if (!isOpen) return null
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
@@ -25,7 +25,7 @@ export default function ConfirmModal({ isOpen, message, description, onConfirm, 
             onClick={onConfirm}
             className={`px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm transition ${danger ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'}`}
           >
-            Delete
+            {confirmLabel}
           </button>
         </div>
       </div>
