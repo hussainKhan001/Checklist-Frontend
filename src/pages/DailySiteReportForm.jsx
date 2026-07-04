@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { ClipboardList, CheckCircle2, Loader2, Camera, X } from 'lucide-react'
-import { submitDailySiteReport, uploadPhoto, getProjects } from '../services/api'
+import { submitDailySiteReport, uploadPhoto, getAllProjectsIncludingHidden, getSettingByKey, getWorkTypes } from '../services/api'
 import CustomSelect from '../components/ui/CustomSelect'
 import { compressImage } from '../utils/compressImage'
 
-const DRI_OPTIONS = [
-  'Site Manager', 'Architect', 'Structural Engineer',
-  'MEP Engineer', 'Civil Engineer', 'Interior Designer', 'Contractor',
+const FALLBACK_DRI_OPTIONS = [
+  'Ajeet', 'Rishabh', 'Ayush', 'Saurabh',
+  'Jeetendra', 'Deepti', 'Umesh', 'Sagar', 'Rajat',
 ]
+const FALLBACK_WORK_TYPES = ['Civil', 'RCC', 'Electrical', 'Plumbing', 'Painter', 'Wooden']
 
 const INITIAL = { dri: '', project: '', projectDescription: '', workType: '' }
 
@@ -24,12 +25,19 @@ export default function DailySiteReportForm() {
   const [loading, setLoading]     = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [projects, setProjects]   = useState([])
+  const [driOptions, setDriOptions]     = useState([])
+  const [workTypes, setWorkTypes]       = useState([])
   const [photos, setPhotos]       = useState([])       // [{ url, uploading, error }]
   const [now, setNow]             = useState(new Date())
   const fileRef                   = useRef()
 
   useEffect(() => {
-    getProjects().then(r => setProjects(r.data || [])).catch(() => {})
+    getAllProjectsIncludingHidden().then(r => setProjects(r.data || [])).catch(() => {})
+    getSettingByKey('DRI_OPTIONS').then(r => setDriOptions(r.data.data.value || FALLBACK_DRI_OPTIONS)).catch(() => setDriOptions(FALLBACK_DRI_OPTIONS))
+    getWorkTypes().then(r => {
+      const names = (r.data.data || []).map(w => w.name)
+      setWorkTypes(names.length ? names : FALLBACK_WORK_TYPES)
+    }).catch(() => setWorkTypes(FALLBACK_WORK_TYPES))
     const t = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
@@ -138,7 +146,7 @@ export default function DailySiteReportForm() {
           <CustomSelect
             value={form.dri}
             onChange={v => set('dri', v)}
-            options={DRI_OPTIONS}
+            options={driOptions}
             placeholder="Choose DRI"
             error={errors.dri}
             accent="emerald"
@@ -170,12 +178,13 @@ export default function DailySiteReportForm() {
 
         {/* Work Type */}
         <Field label="Work Type *" error={errors.workType}>
-          <input
-            type="text"
+          <CustomSelect
             value={form.workType}
-            onChange={e => set('workType', e.target.value)}
-            placeholder="e.g. Masonry, Plumbing, Electrical"
-            className={inputCls(errors.workType)}
+            onChange={v => set('workType', v)}
+            options={workTypes}
+            placeholder="Choose work type"
+            error={errors.workType}
+            accent="emerald"
           />
         </Field>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { HardHat, CheckCircle2, Loader2, ChevronDown, Search, X } from 'lucide-react'
-import { submitContractorReport, getContractors, getWorkTypes, getProjects } from '../services/api'
+import { submitContractorReport, getContractors, getWorkTypes, getAllProjectsIncludingHidden } from '../services/api'
 
 const SHIFT_OPTIONS = ['Day', 'Night', '24-Hour']
 
@@ -42,7 +42,7 @@ export default function ContractorReport() {
     const ctrl = new AbortController()
     getContractors(ctrl.signal).then(r => setContractors(r.data.data || [])).catch(() => {})
     getWorkTypes(ctrl.signal).then(r => setWorkTypes(r.data.data || [])).catch(() => {})
-    getProjects().then(r => setProjects(r.data || [])).catch(() => {})
+    getAllProjectsIncludingHidden().then(r => setProjects(r.data || [])).catch(() => {})
     return () => ctrl.abort()
   }, [])
 
