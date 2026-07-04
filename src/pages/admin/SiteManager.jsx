@@ -4,6 +4,7 @@ import AdminLayout from '../../components/layout/AdminLayout'
 import Modal from '../../components/common/Modal'
 import FormModal from '../../components/ui/FormModal'
 import InputField from '../../components/ui/InputField'
+import CustomSelect from '../../components/ui/CustomSelect'
 import {
   adminGetProjects, adminCreateProject, adminUpdateProject, adminDeleteProject, uploadPhoto,
   adminGetFloors,   adminCreateFloor,   adminUpdateFloor,   adminDeleteFloor,

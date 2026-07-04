@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { ClipboardList, CheckCircle2, Loader2, Camera, X, ChevronDown } from 'lucide-react'
+import { ClipboardList, CheckCircle2, Loader2, Camera, X } from 'lucide-react'
 import { submitDailySiteReport, uploadPhoto, getProjects } from '../services/api'
+import CustomSelect from '../components/ui/CustomSelect'
 
 const DRI_OPTIONS = [
   'Site Manager', 'Architect', 'Structural Engineer',
@@ -133,24 +134,26 @@ export default function DailySiteReportForm() {
 
         {/* DRI */}
         <Field label="DRI (Responsible Individual) *" error={errors.dri}>
-          <div className="relative">
-            <select value={form.dri} onChange={e => set('dri', e.target.value)} className={selectCls(errors.dri)}>
-              <option value="">Choose DRI</option>
-              {DRI_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            value={form.dri}
+            onChange={v => set('dri', v)}
+            options={DRI_OPTIONS}
+            placeholder="Choose DRI"
+            error={errors.dri}
+            accent="emerald"
+          />
         </Field>
 
         {/* Project */}
         <Field label="Project *" error={errors.project}>
-          <div className="relative">
-            <select value={form.project} onChange={e => set('project', e.target.value)} className={selectCls(errors.project)}>
-              <option value="">Choose project</option>
-              {projects.map(p => <option key={p._id} value={p.name}>{p.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            value={form.project}
+            onChange={v => set('project', v)}
+            options={projects.map(p => ({ value: p.name, label: p.name }))}
+            placeholder="Choose project"
+            error={errors.project}
+            accent="emerald"
+          />
         </Field>
 
         {/* Project Description */}
@@ -264,8 +267,3 @@ function inputCls(err) {
   }`
 }
 
-function selectCls(err) {
-  return `w-full px-3.5 py-2.5 rounded-lg border text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none appearance-none transition-colors ${
-    err ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500'
-  }`
-}

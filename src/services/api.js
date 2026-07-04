@@ -37,6 +37,7 @@ export const uploadAvatar   = (formData) => api.post('/auth/avatar', formData, {
 
 // ── Public data (user flow) ───────────────────────────────────────────────────
 export const getProjects = () => api.get('/projects')
+export const getAllProjectsIncludingHidden = () => api.get('/projects?includeHidden=true')
 export const getProject = (id) => api.get(`/projects/${id}`)
 export const getFloors = (projectId) => api.get(`/floors?projectId=${projectId}`)
 export const getFloor = (id) => api.get(`/floors/${id}`)
@@ -144,3 +145,23 @@ export const submitDailySiteReport       = (data)               => api.post('/si
 export const adminGetDailySiteReports    = (params = {}, signal) => api.get('/site-reports', { params, signal })
 export const adminUpdateDailySiteReport  = (id, data)           => api.patch(`/site-reports/${id}`, data)
 export const adminDeleteDailySiteReport  = (id)                 => api.delete(`/site-reports/${id}`)
+
+// ── Work Types ────────────────────────────────────────────────────────────────
+export const getWorkTypes         = (signal)       => api.get('/work-types', { signal })
+export const adminGetWorkTypes    = ()             => api.get('/work-types/admin')
+export const adminCreateWorkType  = (data)         => api.post('/work-types', data)
+export const adminUpdateWorkType  = (id, data)     => api.patch(`/work-types/${id}`, data)
+export const adminDeleteWorkType  = (id)           => api.delete(`/work-types/${id}`)
+
+// ── Contractors ────────────────────────────────────────────────────────────────
+export const getContractors         = (signal)       => api.get('/contractors', { signal })
+export const adminGetContractors    = (params = {})  => api.get('/contractors/admin', { params })
+export const adminCreateContractor  = (data)         => api.post('/contractors', data)
+export const adminUpdateContractor  = (id, data)     => api.patch(`/contractors/${id}`, data)
+export const adminDeleteContractor  = (id)           => api.delete(`/contractors/${id}`)
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+export const getSettings            = ()             => api.get('/settings')
+export const getSettingByKey        = (key)          => api.get(`/settings/${key}`)
+export const updateSetting          = (key, data)    => api.put(`/settings/${key}`, data)
+

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/layout/AdminLayout'
+import CustomSelect from '../../components/ui/CustomSelect'
 import {
   adminGetTrades, adminGetProjects, adminGetFloors, adminGetLocations, adminGetElements,
   adminGetTradeElements, adminCreateTradeElement, adminDeleteTradeElement,
@@ -23,7 +24,6 @@ const TYPE_LABEL = {
   DOOR_WINDOW_FRAME: 'Door/Window Frame', STAIRCASE: 'Staircase', OTHER: 'Other',
 }
 
-const selectCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
 
 export default function TradeElements() {
   const { tradeId } = useParams()
@@ -135,31 +135,50 @@ export default function TradeElements() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Project</label>
-              <select className={selectCls} value={selProject} onChange={e => setSelProject(e.target.value)}>
-                <option value="">— select —</option>
-                {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-              </select>
+              <CustomSelect
+                value={selProject}
+                onChange={setSelProject}
+                options={projects.map(p => ({ value: p._id, label: p.name }))}
+                emptyLabel="— select —"
+                accent="orange"
+                size="md"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Floor</label>
-              <select className={selectCls} value={selFloor} onChange={e => setSelFloor(e.target.value)} disabled={!selProject}>
-                <option value="">— select —</option>
-                {floors.map(f => <option key={f._id} value={f._id}>{f.label}</option>)}
-              </select>
+              <CustomSelect
+                value={selFloor}
+                onChange={setSelFloor}
+                options={floors.map(f => ({ value: f._id, label: f.label }))}
+                emptyLabel="— select —"
+                disabled={!selProject}
+                accent="orange"
+                size="md"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Location</label>
-              <select className={selectCls} value={selLocation} onChange={e => setSelLocation(e.target.value)} disabled={!selFloor}>
-                <option value="">— select —</option>
-                {locations.map(l => <option key={l._id} value={l._id}>{l.name}</option>)}
-              </select>
+              <CustomSelect
+                value={selLocation}
+                onChange={setSelLocation}
+                options={locations.map(l => ({ value: l._id, label: l.name }))}
+                emptyLabel="— select —"
+                disabled={!selFloor}
+                accent="orange"
+                size="md"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Element</label>
-              <select className={selectCls} value={selElement} onChange={e => setSelElement(e.target.value)} disabled={!selLocation}>
-                <option value="">— select —</option>
-                {elements.map(el => <option key={el._id} value={el._id}>{el.name} ({TYPE_LABEL[el.type] || el.type})</option>)}
-              </select>
+              <CustomSelect
+                value={selElement}
+                onChange={setSelElement}
+                options={elements.map(el => ({ value: el._id, label: `${el.name} (${TYPE_LABEL[el.type] || el.type})` }))}
+                emptyLabel="— select —"
+                disabled={!selLocation}
+                accent="orange"
+                size="md"
+              />
             </div>
           </div>
           <div className="mt-4 flex justify-end">

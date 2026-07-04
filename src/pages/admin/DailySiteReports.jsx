@@ -4,9 +4,10 @@ import AdminLayout from '../../components/layout/AdminLayout'
 import { adminGetDailySiteReports, adminUpdateDailySiteReport, adminDeleteDailySiteReport } from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
 import Drawer, { DetailRow } from '../../components/common/Drawer'
-import { ClipboardList, Search, Trash2, ChevronLeft, ChevronRight, X, Eye, Pencil, Loader2, Image, ChevronDown } from 'lucide-react'
+import { ClipboardList, Search, Trash2, ChevronLeft, ChevronRight, X, Eye, Pencil, Loader2, Image } from 'lucide-react'
 import DateRangeInput from '../../components/common/DateRangeInput'
 import toast from 'react-hot-toast'
+import CustomSelect from '../../components/ui/CustomSelect'
 
 const LIMIT       = 50
 const STATUSES    = ['Pending', 'Reviewed']
@@ -137,13 +138,15 @@ export default function DailySiteReports() {
               className="w-32 px-3 py-2 h-[38px] rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-emerald-500 transition-colors" />
           </div>
           {/* Status */}
-          <div className="relative shrink-0">
-            <select value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))}
-              className="appearance-none pl-3 pr-8 py-2 h-[38px] rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:border-emerald-500 transition-colors cursor-pointer">
-              <option value="">All statuses</option>
-              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          <div className="shrink-0 w-40">
+            <CustomSelect
+              value={filters.status}
+              onChange={v => setFilters(p => ({ ...p, status: v }))}
+              options={STATUSES}
+              emptyLabel="All statuses"
+              accent="emerald"
+              size="sm"
+            />
           </div>
           {/* Date range */}
           <DateRangeInput from={filters.from} to={filters.to} onChange={(f, v) => setFilters(p => ({ ...p, [f]: v }))} />
@@ -274,9 +277,7 @@ export default function DailySiteReports() {
         {editRec && (
           <div className="space-y-3">
             <EField label="DRI">
-              <select value={editForm.dri} onChange={e => ef('dri', e.target.value)} className={eInput}>
-                {DRI_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <CustomSelect value={editForm.dri} onChange={v => ef('dri', v)} options={DRI_OPTIONS} accent="emerald" />
             </EField>
             <EField label="Project"><input value={editForm.project} onChange={e => ef('project', e.target.value)} className={eInput} /></EField>
             <EField label="Description">
@@ -284,9 +285,7 @@ export default function DailySiteReports() {
             </EField>
             <EField label="Work Type"><input value={editForm.workType} onChange={e => ef('workType', e.target.value)} className={eInput} /></EField>
             <EField label="Status">
-              <select value={editForm.status} onChange={e => ef('status', e.target.value)} className={eInput}>
-                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <CustomSelect value={editForm.status} onChange={v => ef('status', v)} options={STATUSES} accent="emerald" />
             </EField>
           </div>
         )}

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import AdminLayout from '../../components/layout/AdminLayout'
 import Modal from '../../components/common/Modal'
 import { adminGetProjects, adminGetFloors, adminGetMatrix, adminGetInspections } from '../../services/api'
-import { RefreshCw, ChevronDown, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock, Camera } from 'lucide-react'
+import { RefreshCw, LayoutGrid, MoveHorizontal, Radio, CheckCircle2, XCircle, Clock, Camera } from 'lucide-react'
+import CustomSelect from '../../components/ui/CustomSelect'
 import toast from 'react-hot-toast'
 
 // ── Cell status config ─────────────────────────────────────────────────────────
@@ -752,8 +753,6 @@ export default function ChecklistMatrix() {
   const projectName = projects.find(p => p._id === selProject)?.name || ''
   const floorLabel  = floors.find(f => f._id === selFloor)?.label   || ''
 
-  const selectCls = 'w-full appearance-none pl-3 pr-8 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-
   return (
     <AdminLayout>
       <div className="space-y-4">
@@ -788,25 +787,23 @@ export default function ChecklistMatrix() {
 
         {/* Selectors */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:max-w-xl">
-          <div className="relative">
-            <select value={selProject} onChange={e => setSelProject(e.target.value)} className={selectCls}>
-              <option value="">Select Project…</option>
-              {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select
-              value={selFloor}
-              onChange={e => setSelFloor(e.target.value)}
-              disabled={!selProject || floors.length === 0}
-              className={selectCls}
-            >
-              <option value="">Select Floor…</option>
-              {floors.map(f => <option key={f._id} value={f._id}>{f.label} ({f.code})</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            value={selProject}
+            onChange={v => setSelProject(v)}
+            options={projects.map(p => ({ value: p._id, label: p.name }))}
+            placeholder="Select Project…"
+            emptyLabel="Select Project…"
+            accent="orange"
+          />
+          <CustomSelect
+            value={selFloor}
+            onChange={v => setSelFloor(v)}
+            options={floors.map(f => ({ value: f._id, label: `${f.label} (${f.code})` }))}
+            placeholder="Select Floor…"
+            emptyLabel="Select Floor…"
+            disabled={!selProject || floors.length === 0}
+            accent="orange"
+          />
         </div>
 
         {/* Content */}

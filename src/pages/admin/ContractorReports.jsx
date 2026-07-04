@@ -4,9 +4,10 @@ import AdminLayout from '../../components/layout/AdminLayout'
 import { adminGetContractorReports, adminUpdateContractorReport, adminDeleteContractorReport } from '../../services/api'
 import { useConfirm } from '../../context/ConfirmContext'
 import Drawer, { DetailRow } from '../../components/common/Drawer'
-import { HardHat, Search, Trash2, ChevronLeft, ChevronRight, X, Eye, Pencil, Loader2, ChevronDown } from 'lucide-react'
+import { HardHat, Search, Trash2, ChevronLeft, ChevronRight, X, Eye, Pencil, Loader2 } from 'lucide-react'
 import DateRangeInput from '../../components/common/DateRangeInput'
 import toast from 'react-hot-toast'
+import CustomSelect from '../../components/ui/CustomSelect'
 
 const SHIFTS = ['Day', 'Night', '24-Hour']
 const LIMIT  = 50
@@ -121,13 +122,15 @@ export default function ContractorReports() {
               className="w-full pl-9 pr-3 py-2 h-[38px] rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-orange-400 transition-colors" />
           </div>
           {/* Shift */}
-          <div className="relative shrink-0">
-            <select value={filters.shiftType} onChange={e => setFilters(p => ({ ...p, shiftType: e.target.value }))}
-              className="appearance-none pl-3 pr-8 py-2 h-[38px] rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:border-orange-400 transition-colors cursor-pointer">
-              <option value="">All shifts</option>
-              {SHIFTS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          <div className="shrink-0 w-36">
+            <CustomSelect
+              value={filters.shiftType}
+              onChange={v => setFilters(p => ({ ...p, shiftType: v }))}
+              options={SHIFTS}
+              emptyLabel="All shifts"
+              accent="orange"
+              size="sm"
+            />
           </div>
           {/* Date range */}
           <DateRangeInput from={filters.from} to={filters.to} onChange={(f, v) => setFilters(p => ({ ...p, [f]: v }))} />
@@ -266,7 +269,10 @@ function EField({ label, children }) {
 
 function fmtDate(d) {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(d).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  })
 }
 
 function shiftCls(shift) {

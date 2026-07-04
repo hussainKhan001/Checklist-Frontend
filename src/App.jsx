@@ -34,6 +34,8 @@ import DrawingRequestForm from './pages/DrawingRequestForm'
 import DrawingRequests from './pages/admin/DrawingRequests'
 import DailySiteReportForm from './pages/DailySiteReportForm'
 import DailySiteReports from './pages/admin/DailySiteReports'
+import Contractors from './pages/admin/Contractors'
+import Settings from './pages/Settings'
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
@@ -81,6 +83,8 @@ export default function App() {
           <Route path="/labour-reports"               element={<ProtectedRoute permission="view_inspections">         <ContractorReports /></ProtectedRoute>} />
           <Route path="/drawing-requests"            element={<ProtectedRoute permission="view_inspections">         <DrawingRequests />  </ProtectedRoute>} />
           <Route path="/site-reports"               element={<ProtectedRoute permission="view_inspections">         <DailySiteReports /> </ProtectedRoute>} />
+          <Route path="/contractors"              element={<ProtectedRoute permission="manage_users">             <Contractors />      </ProtectedRoute>} />
+          <Route path="/settings"                 element={<ProtectedRoute permission="manage_users">             <Settings />         </ProtectedRoute>} />
 
           {/* ── Public inspection form — no login required ────────────────── */}
           <Route path="/*" element={

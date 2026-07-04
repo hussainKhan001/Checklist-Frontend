@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/layout/AdminLayout'
 import Modal from '../../components/common/Modal'
 import { Plus, Pencil, Trash2, ArrowLeft, Camera, Eye, EyeOff, Layers, FolderOpen } from 'lucide-react'
+import CustomSelect from '../../components/ui/CustomSelect'
 import { useConfirm } from '../../context/ConfirmContext'
 import toast from 'react-hot-toast'
 import {
@@ -187,16 +188,13 @@ export default function CheckPoints() {
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
               Project
             </label>
-            <select
-              className={inputCls}
+            <CustomSelect
               value={selProject}
-              onChange={e => setSelProject(e.target.value)}
-            >
-              <option value="">— Global (all projects) —</option>
-              {projects.map(p => (
-                <option key={p._id} value={p._id}>{p.name}</option>
-              ))}
-            </select>
+              onChange={v => setSelProject(v)}
+              options={projects.map(p => ({ value: p._id, label: p.name }))}
+              emptyLabel="— Global (all projects) —"
+              accent="orange"
+            />
           </div>
 
           {/* Trade selector (hidden when coming from a specific trade URL) */}
@@ -205,14 +203,13 @@ export default function CheckPoints() {
               <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Trade
               </label>
-              <select
-                className={inputCls}
+              <CustomSelect
                 value={selTrade}
-                onChange={e => setSelTrade(e.target.value)}
-              >
-                <option value="">— choose a trade —</option>
-                {trades.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </select>
+                onChange={v => setSelTrade(v)}
+                options={trades.map(t => ({ value: t._id, label: t.name }))}
+                emptyLabel="— choose a trade —"
+                accent="orange"
+              />
             </div>
           )}
         </div>

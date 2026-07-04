@@ -1,30 +1,36 @@
 import { useState, useEffect } from 'react'
-import { PenLine, CheckCircle2, Loader2, ChevronDown } from 'lucide-react'
-import { submitDrawingRequest, getProjects } from '../services/api'
+import { PenLine, CheckCircle2, Loader2, Copy, Check } from 'lucide-react'
+import { submitDrawingRequest, getAllProjectsIncludingHidden, getSettingByKey } from '../services/api'
+import CustomSelect from '../components/ui/CustomSelect'
 
-const DRAWING_TYPES = [
+const FALLBACK_DRAWING_TYPES = [
   'Architectural', 'Structural', 'MEP', 'Civil',
   'Interior', 'Landscape', 'Shop Drawing', 'As-Built',
 ]
 
-const DRI_OPTIONS = [
-  'Architect', 'Structural Engineer', 'MEP Engineer',
-  'Civil Engineer', 'Interior Designer', 'Contractor',
+const FALLBACK_DRI_OPTIONS = [
+  'Ajeet', 'Rishabh', 'Ayush', 'Saurabh', 
+  'Jeetendra', 'Deepti', 'Umesh', 'Sagar', 'Rajat'
 ]
 
 const INITIAL = {
-  project: '', drawingDescription: '', drawingType: '', dri: '', requestDate: '',
+  project: '', drawingDescription: '', drawingType: '', dri: '', requestDate: new Date().toISOString(),
 }
 
 export default function DrawingRequestForm() {
   const [form, setForm]         = useState(INITIAL)
   const [errors, setErrors]     = useState({})
   const [loading, setLoading]   = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(null) // ticketNo string on success
+  const [copied, setCopied]     = useState(false)
   const [projects, setProjects] = useState([])
+  const [driOptions, setDriOptions] = useState([])
+  const [drawingTypes, setDrawingTypes] = useState([])
 
   useEffect(() => {
-    getProjects().then(r => setProjects(r.data || [])).catch(() => {})
+    getAllProjectsIncludingHidden().then(r => setProjects(r.data || [])).catch(() => {})
+    getSettingByKey('DRI_OPTIONS').then(r => setDriOptions(r.data.data.value || FALLBACK_DRI_OPTIONS)).catch(() => setDriOptions(FALLBACK_DRI_OPTIONS))
+    getSettingByKey('DRAWING_TYPES').then(r => setDrawingTypes(r.data.data.value || FALLBACK_DRAWING_TYPES)).catch(() => setDrawingTypes(FALLBACK_DRAWING_TYPES))
   }, [])
 
   const set = (field, value) => {
@@ -34,11 +40,11 @@ export default function DrawingRequestForm() {
 
   const validate = () => {
     const e = {}
-    if (!form.project)              e.project            = 'Required'
+    if (!form.project)                  e.project            = 'Required'
     if (!form.drawingDescription.trim()) e.drawingDescription = 'Required'
-    if (!form.drawingType)          e.drawingType        = 'Required'
-    if (!form.dri)                  e.dri                = 'Required'
-    if (!form.requestDate)          e.requestDate        = 'Required'
+    if (!form.drawingType)              e.drawingType        = 'Required'
+    if (!form.dri)                      e.dri                = 'Required'
+    if (!form.requestDate)              e.requestDate        = 'Required'
     return e
   }
 
@@ -48,13 +54,20 @@ export default function DrawingRequestForm() {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setLoading(true)
     try {
-      await submitDrawingRequest(form)
-      setSubmitted(true)
+      const res = await submitDrawingRequest(form)
+      setSubmitted(res.data.data.ticketNo)
     } catch {
       setErrors({ _form: 'Submission failed. Please try again.' })
     } finally {
       setLoading(false)
     }
+  }
+
+  const copyTicket = () => {
+    navigator.clipboard.writeText(submitted).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   if (submitted) {
@@ -64,12 +77,27 @@ export default function DrawingRequestForm() {
           <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-violet-600 dark:text-violet-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Request Submitted</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-            Your drawing request has been recorded and will be processed.
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Request Submitted</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">Your drawing request has been recorded.</p>
+
+          <div className="mb-5 px-5 py-4 bg-violet-50 dark:bg-violet-500/10 rounded-2xl border border-violet-200 dark:border-violet-500/30">
+            <p className="text-xs text-violet-500 dark:text-violet-400 mb-1.5 tracking-wide uppercase font-medium">Ticket ID</p>
+            <p className="text-3xl font-mono font-bold text-violet-700 dark:text-violet-200 tracking-wider mb-3">{submitted}</p>
+            <button
+              onClick={copyTicket}
+              className="flex items-center gap-1.5 mx-auto text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 transition-colors"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied!' : 'Copy ticket ID'}
+            </button>
+          </div>
+
+          <p className="text-gray-400 dark:text-gray-500 text-xs mb-5">
+            Save this ticket ID for reference. AGM will assign the drawing and set priority.
           </p>
+
           <button
-            onClick={() => { setForm(INITIAL); setSubmitted(false) }}
+            onClick={() => { setForm(INITIAL); setSubmitted(null); setCopied(false) }}
             className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             Submit Another
@@ -95,19 +123,14 @@ export default function DrawingRequestForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Project */}
         <Field label="Project *" error={errors.project}>
-          <div className="relative">
-            <select
-              value={form.project}
-              onChange={e => set('project', e.target.value)}
-              className={selectCls(errors.project)}
-            >
-              <option value="">Choose project</option>
-              {projects.map(p => (
-                <option key={p._id} value={p.name}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            value={form.project}
+            onChange={v => set('project', v)}
+            options={projects.map(p => ({ value: p.name, label: p.name }))}
+            placeholder="Choose project"
+            error={errors.project}
+            accent="violet"
+          />
         </Field>
 
         {/* Drawing Description */}
@@ -123,42 +146,35 @@ export default function DrawingRequestForm() {
 
         {/* Drawing Type */}
         <Field label="Drawing Type *" error={errors.drawingType}>
-          <div className="relative">
-            <select
-              value={form.drawingType}
-              onChange={e => set('drawingType', e.target.value)}
-              className={selectCls(errors.drawingType)}
-            >
-              <option value="">Choose type</option>
-              {DRAWING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          <CustomSelect
+            value={form.drawingType}
+            onChange={v => set('drawingType', v)}
+            options={drawingTypes}
+            placeholder="Choose type"
+            error={errors.drawingType}
+            accent="violet"
+          />
         </Field>
 
         {/* DRI */}
-        <Field label="DRI (Responsible Individual) *" error={errors.dri}>
-          <div className="relative">
-            <select
-              value={form.dri}
-              onChange={e => set('dri', e.target.value)}
-              className={selectCls(errors.dri)}
-            >
-              <option value="">Choose DRI</option>
-              {DRI_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+        <Field label="DRI *" error={errors.dri}>
+          <CustomSelect
+            value={form.dri}
+            onChange={v => set('dri', v)}
+            options={driOptions}
+            placeholder="Choose"
+            error={errors.dri}
+            accent="violet"
+          />
         </Field>
 
         {/* Request Date */}
         <Field label="Request Date *" error={errors.requestDate}>
           <input
-            type="date"
-            value={form.requestDate}
-            onChange={e => set('requestDate', e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
-            className={inputCls(errors.requestDate)}
+            type="text"
+            value={new Date(form.requestDate).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+            className={inputCls(errors.requestDate) + " opacity-70 cursor-not-allowed"}
+            disabled
           />
         </Field>
 
@@ -194,8 +210,3 @@ function inputCls(err) {
   }`
 }
 
-function selectCls(err) {
-  return `w-full px-3.5 py-2.5 rounded-lg border text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none appearance-none transition-colors ${
-    err ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-violet-500'
-  }`
-}

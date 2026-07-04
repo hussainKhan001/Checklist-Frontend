@@ -8,6 +8,7 @@ import {
 import { useConfirm } from '../../context/ConfirmContext'
 import { Plus, Trash2, Layers, Zap, ChevronRight, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
+import CustomSelect from '../../components/ui/CustomSelect'
 
 const TYPE_COLOR = {
   WALL:              'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400',

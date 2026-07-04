@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ClipboardList, Users,
   ArrowLeft, LogOut, Menu, Building2, ShieldCheck, LayoutGrid,
   Sun, Moon, ExternalLink, TrendingUp,
-  Settings2, HardHat, Globe, PenLine, FileText,
+  Settings2, Settings, HardHat, Globe, PenLine, FileText,
 } from 'lucide-react'
 
 const ALL_NAV = [
@@ -17,8 +17,10 @@ const ALL_NAV = [
   { to: '/labour-reports',    label: 'Labour Reports',   icon: HardHat,   permission: 'view_inspections'    },
   { to: '/drawing-requests',  label: 'Drawing Requests', icon: PenLine,   permission: 'view_inspections'    },
   { to: '/site-reports',      label: 'Site Reports',     icon: FileText,  permission: 'view_inspections'    },
+  { to: '/contractors',        label: 'Contractors',       icon: HardHat,   permission: 'manage_users'        },
   { to: '/users',       label: 'Users',             icon: Users,           permission: 'manage_users'        },
   { to: '/roles',       label: 'Roles',             icon: ShieldCheck,     permission: 'manage_roles'        },
+  { to: '/settings',    label: 'Settings',          icon: Settings,        permission: 'manage_users'        },
   { to: '/public-portal', label: 'Public Portal',  icon: Globe                                                 },
 ]
 
