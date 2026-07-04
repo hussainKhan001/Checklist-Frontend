@@ -461,8 +461,8 @@ function EField({ label, children }) {
 
 function Section({ label, children }) {
   return (
-    <div className="rounded-lg border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-      <div className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700/60">
+    <div className="rounded-lg border border-gray-100 dark:border-gray-700/60">
+      <div className="px-3 py-1.5 rounded-t-lg bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700/60">
         <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-gray-500">{label}</span>
       </div>
       <div className="p-3 space-y-3">{children}</div>

@@ -64,7 +64,7 @@ function Crumb({ steps, onGo }) {
 }
 
 // ── Inline editable row ───────────────────────────────────────────────────────
-function InlineRow({ item, fields, onSave, onDelete, label, icon: Icon, color, extraContent, isAdmin = true }) {
+function InlineRow({ item, fields, onSave, onDelete, label, icon: Icon, color, extraContent, isAdmin = true, selectable = false, checked = false, onToggleSelect }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -107,6 +107,9 @@ function InlineRow({ item, fields, onSave, onDelete, label, icon: Icon, color, e
         </FormModal>
       )}
       <div className="flex items-center gap-3 px-3 py-2.5 group">
+          {selectable && (
+            <input type="checkbox" checked={checked} onChange={() => onToggleSelect(item._id)} className="w-4 h-4 rounded accent-orange-500 flex-shrink-0" />
+          )}
           {color && <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 ${color}`}>{ELEM_LABEL[item.type] || item.type}</span>}
           {Icon && !color && <Icon className="w-4 h-4 text-orange-400 flex-shrink-0" />}
           <span className="flex-1 text-sm font-semibold text-gray-900 dark:text-white">{label}</span>
@@ -118,6 +121,34 @@ function InlineRow({ item, fields, onSave, onDelete, label, icon: Icon, color, e
             </div>
           )}
         </div>
+    </div>
+  )
+}
+
+// ── Bulk-select toolbar (Select / Select All / Delete Selected) ────────────────
+function SelectBar({ selectMode, onToggleMode, count, total, allSelected, onSelectAll, onDelete, deleting }) {
+  if (!selectMode) {
+    return (
+      <button onClick={onToggleMode} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-bold rounded-xl transition">
+        <CheckSquare className="w-3.5 h-3.5" /> Select
+      </button>
+    )
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <button onClick={onSelectAll} className="px-3 py-2 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-bold rounded-xl transition">
+        {allSelected ? 'Clear' : `Select All (${total})`}
+      </button>
+      <button
+        onClick={onDelete}
+        disabled={count === 0 || deleting}
+        className="flex items-center gap-1.5 px-3 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition"
+      >
+        <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'Deleting…' : `Delete Selected (${count})`}
+      </button>
+      <button onClick={onToggleMode} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+        <X className="w-3.5 h-3.5" />
+      </button>
     </div>
   )
 }
@@ -282,6 +313,29 @@ function RoomDetail({ project, room, allTrades, isAdmin, defaultTrade }) {
   const [bulkType, setBulkType] = useState('WALL')
   const [bulkSaving, setBulkSaving] = useState(false)
 
+  const [elemSelectMode, setElemSelectMode] = useState(false)
+  const [selectedElemIds, setSelectedElemIds] = useState(new Set())
+  const [deletingElems, setDeletingElems] = useState(false)
+  const toggleElemSelect = (id) => setSelectedElemIds(prev => {
+    const s = new Set(prev)
+    s.has(id) ? s.delete(id) : s.add(id)
+    return s
+  })
+  const deleteSelectedElements = async () => {
+    const count = selectedElemIds.size
+    const ok = await confirm(`Delete ${count} element(s)?`, 'This will permanently remove associated checklists and checkpoints for these elements.')
+    if (!ok) return
+    setDeletingElems(true)
+    try {
+      for (const id of selectedElemIds) await adminDeleteElement(id)
+      await loadRoom()
+      setSelectedElemIds(new Set())
+      setElemSelectMode(false)
+      toast.success(`${count} element(s) deleted.`)
+    } catch { toast.error('Some deletions failed.') }
+    finally { setDeletingElems(false) }
+  }
+
   const saveElement = async () => {
     if (!elemForm.name.trim()) return toast.error('Name required.')
     await adminCreateElement({
@@ -403,9 +457,23 @@ function RoomDetail({ project, room, allTrades, isAdmin, defaultTrade }) {
           ))}
         </div>
         {isAdmin && tab === 'elements' && (
-          <button onClick={() => { setElemForm({ name: '', type: 'WALL', order: '' }); setElemModal(true) }} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
-            <Plus className="w-4 h-4" /> Add Element
-          </button>
+          <div className="flex items-center gap-2">
+            {elements.length > 0 && (
+              <SelectBar
+                selectMode={elemSelectMode}
+                onToggleMode={() => { setElemSelectMode(m => !m); setSelectedElemIds(new Set()) }}
+                count={selectedElemIds.size}
+                total={elements.length}
+                allSelected={selectedElemIds.size === elements.length}
+                onSelectAll={() => setSelectedElemIds(prev => prev.size === elements.length ? new Set() : new Set(elements.map(el => el._id)))}
+                onDelete={deleteSelectedElements}
+                deleting={deletingElems}
+              />
+            )}
+            <button onClick={() => { setElemForm({ name: '', type: 'WALL', order: '' }); setElemModal(true) }} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
+              <Plus className="w-4 h-4" /> Add Element
+            </button>
+          </div>
         )}
       </div>
 
@@ -422,6 +490,9 @@ function RoomDetail({ project, room, allTrades, isAdmin, defaultTrade }) {
               label={el.name}
               isAdmin={isAdmin}
               color={TYPE_COLOR[el.type] || TYPE_COLOR.OTHER}
+              selectable={elemSelectMode}
+              checked={selectedElemIds.has(el._id)}
+              onToggleSelect={toggleElemSelect}
               fields={[
                 { key: 'name', label: 'Element Name', placeholder: 'e.g. C 001' },
                 { key: 'type', label: 'Type', type: 'select', options: ELEM_TYPES.map(t => ({ value: t, label: ELEM_LABEL[t] })) },
@@ -915,6 +986,29 @@ export default function SiteManager() {
   const [rooms,     setRooms]     = useState([])
   const [allTrades, setAllTrades] = useState([])
 
+  const [floorSelectMode, setFloorSelectMode] = useState(false)
+  const [selectedFloorIds, setSelectedFloorIds] = useState(new Set())
+  const [deletingFloors, setDeletingFloors] = useState(false)
+  const toggleFloorSelect = (id) => setSelectedFloorIds(prev => {
+    const s = new Set(prev)
+    s.has(id) ? s.delete(id) : s.add(id)
+    return s
+  })
+  const deleteSelectedFloors = async () => {
+    const count = selectedFloorIds.size
+    const ok = await confirm(`Delete ${count} floor(s)?`, 'This will permanently remove all rooms, elements, and inspections under them.')
+    if (!ok) return
+    setDeletingFloors(true)
+    try {
+      for (const id of selectedFloorIds) await adminDeleteFloor(id)
+      await loadFloors()
+      setSelectedFloorIds(new Set())
+      setFloorSelectMode(false)
+      toast.success(`${count} floor(s) deleted.`)
+    } catch { toast.error('Some deletions failed.') }
+    finally { setDeletingFloors(false) }
+  }
+
   const [project, setProject] = useState(null)
   const [floor,   setFloor]   = useState(null)
   const [room,    setRoom]    = useState(null)
@@ -942,6 +1036,9 @@ export default function SiteManager() {
   // Modals for Floor & Room
   const [floorModal, setFloorModal] = useState(false)
   const [floorForm, setFloorForm] = useState({ code: '', label: '', order: '' })
+  const [floorBulkMode, setFloorBulkMode] = useState(false)
+  const [floorBulkLines, setFloorBulkLines] = useState('')
+  const [floorBulkSaving, setFloorBulkSaving] = useState(false)
 
   const [roomModal, setRoomModal] = useState(false)
   const [roomForm, setRoomForm] = useState({ name: '', type: 'APARTMENT' })
@@ -950,6 +1047,25 @@ export default function SiteManager() {
     if (!floorForm.code.trim() || !floorForm.label.trim()) return toast.error('Code and label required.')
     await adminCreateFloor({ code: floorForm.code.trim(), label: floorForm.label.trim(), order: Number(floorForm.order) || floors.length + 1, projectId: pId })
     loadFloors(); setFloorModal(false); toast.success('Floor added.')
+  }
+
+  const saveBulkFloors = async () => {
+    const lines = floorBulkLines.split('\n').map(l => l.trim()).filter(Boolean)
+    if (!lines.length) return toast.error('Paste at least one floor.')
+    setFloorBulkSaving(true)
+    let added = 0
+    for (let i = 0; i < lines.length; i++) {
+      const [codePart, labelPart] = lines[i].split(',').map(s => s.trim())
+      if (!codePart) continue
+      await adminCreateFloor({ code: codePart, label: labelPart || codePart, order: floors.length + i + 1, projectId: pId })
+      added++
+    }
+    await loadFloors()
+    setFloorBulkSaving(false)
+    setFloorBulkLines('')
+    setFloorBulkMode(false)
+    setFloorModal(false)
+    toast.success(`${added} floors added.`)
   }
 
   const saveRoom = async () => {
@@ -1163,8 +1279,20 @@ export default function SiteManager() {
                 <Plus className="w-4 h-4" /> Add Project
               </button>
             )}
+            {isAdmin && step === 1 && floors.length > 0 && (
+              <SelectBar
+                selectMode={floorSelectMode}
+                onToggleMode={() => { setFloorSelectMode(m => !m); setSelectedFloorIds(new Set()) }}
+                count={selectedFloorIds.size}
+                total={floors.length}
+                allSelected={selectedFloorIds.size === floors.length}
+                onSelectAll={() => setSelectedFloorIds(prev => prev.size === floors.length ? new Set() : new Set(floors.map(f => f._id)))}
+                onDelete={deleteSelectedFloors}
+                deleting={deletingFloors}
+              />
+            )}
             {isAdmin && step === 1 && (
-              <button onClick={() => { setFloorForm({ code: '', label: '', order: '' }); setFloorModal(true) }} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
+              <button onClick={() => { setFloorForm({ code: '', label: '', order: '' }); setFloorBulkMode(false); setFloorBulkLines(''); setFloorModal(true) }} className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-sm transition">
                 <Plus className="w-4 h-4" /> Add Floor
               </button>
             )}
@@ -1231,6 +1359,9 @@ export default function SiteManager() {
                   label={f.label}
                   isAdmin={isAdmin}
                   icon={Layers}
+                  selectable={floorSelectMode}
+                  checked={selectedFloorIds.has(f._id)}
+                  onToggleSelect={toggleFloorSelect}
                   fields={[
                     { key: 'code', label: 'Code', placeholder: 'e.g. BSMT' },
                     { key: 'label', label: 'Label', placeholder: 'e.g. Basement' },
@@ -1397,9 +1528,45 @@ export default function SiteManager() {
 
       {/* Floor Add Modal */}
       {floorModal && (
-        <FormModal title="Add Floor" onClose={() => setFloorModal(false)} onSave={saveFloor}>
-          <InputField label="Floor Code" required value={floorForm.code} onChange={e => setFloorForm(f => ({ ...f, code: e.target.value }))} placeholder="e.g. BSMT" />
-          <InputField label="Floor Label" required value={floorForm.label} onChange={e => setFloorForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Basement" />
+        <FormModal
+          title="Add Floor"
+          onClose={() => { setFloorModal(false); setFloorBulkMode(false); setFloorBulkLines('') }}
+          onSave={floorBulkMode ? saveBulkFloors : saveFloor}
+          saveLabel={floorBulkMode ? (floorBulkSaving ? 'Adding…' : `Add ${floorBulkLines.split('\n').filter(l => l.trim()).length || 0} Floors`) : 'Save'}
+          saving={floorBulkSaving}
+        >
+          {/* Mode toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-1">
+            <button type="button" onClick={() => setFloorBulkMode(false)}
+              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${!floorBulkMode ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              Single
+            </button>
+            <button type="button" onClick={() => setFloorBulkMode(true)}
+              className={`flex-1 py-1.5 text-xs font-semibold transition-colors ${floorBulkMode ? 'bg-orange-500 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+              Bulk Add
+            </button>
+          </div>
+
+          {floorBulkMode ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Floor Lines <span className="text-gray-400 font-normal">(one per line — "code, label")</span>
+              </label>
+              <textarea
+                className={inp + ' font-mono text-xs'}
+                rows={10}
+                value={floorBulkLines}
+                onChange={e => setFloorBulkLines(e.target.value)}
+                placeholder={'BSMT, Basement\n1, 1st Floor\n2, 2nd Floor\n...'}
+              />
+              <p className="text-[11px] text-gray-400 mt-1">{floorBulkLines.split('\n').filter(l => l.trim()).length} floors to add</p>
+            </div>
+          ) : (
+            <>
+              <InputField label="Floor Code" required value={floorForm.code} onChange={e => setFloorForm(f => ({ ...f, code: e.target.value }))} placeholder="e.g. BSMT" />
+              <InputField label="Floor Label" required value={floorForm.label} onChange={e => setFloorForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Basement" />
+            </>
+          )}
         </FormModal>
       )}
 
