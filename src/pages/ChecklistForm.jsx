@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { compressImage } from '../utils/compressImage'
+import { useOfflineUploadQueue, makeLocalId } from '../hooks/useOfflineUploadQueue'
 
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
@@ -205,21 +206,80 @@ export default function ChecklistForm() {
     setResults(prev => ({ ...prev, [cpId]: value }))
   }
 
+  // ── Offline upload queue ─────────────────────────────────────────────────────
+  // A weak site connection shouldn't stop an engineer from attaching photos —
+  // a failed upload (no response at all, i.e. offline/timeout) is queued in
+  // IndexedDB and retried in the background until it succeeds, instead of
+  // just showing "Upload failed" and losing the photo.
+  const offlineOwnerId = locationId && tradeId ? `${locationId}|${tradeId}|${elementId || 'none'}` : null
+
+  const attemptBackgroundUpload = async (blob, meta) => {
+    const fd = new FormData()
+    fd.append('photo', blob, meta.fileName)
+    if (inspIdRef.current) fd.append('inspectionId', inspIdRef.current)
+    const res = await uploadPhoto(fd)
+    return res.data.url
+  }
+
+  const handleBackgroundSynced = (meta, url) => {
+    setPhotos(prev => ({ ...prev, [meta.cpId]: [...(prev[meta.cpId] || []), url] }))
+    setPhotoErrorCpIds(prev => { const s = new Set(prev); s.delete(String(meta.cpId)); return s })
+    toast.success('Offline photo uploaded.')
+  }
+
+  const { pending: pendingUploads, enqueue: enqueuePendingUpload } = useOfflineUploadQueue(
+    offlineOwnerId, attemptBackgroundUpload, handleBackgroundSynced,
+  )
+
+  // Object-URL previews for queued (not-yet-uploaded) blobs, cached per localId
+  // so we don't re-create/leak a URL on every render.
+  const previewCacheRef = useRef(new Map())
+  const [pendingPreviews, setPendingPreviews] = useState(new Map())
+  useEffect(() => {
+    const cache = previewCacheRef.current
+    const next = new Map()
+    pendingUploads.forEach(record => {
+      next.set(record.localId, cache.has(record.localId) ? cache.get(record.localId) : URL.createObjectURL(record.blob))
+    })
+    cache.forEach((url, id) => { if (!next.has(id)) URL.revokeObjectURL(url) })
+    previewCacheRef.current = next
+    setPendingPreviews(next)
+  }, [pendingUploads])
+
+  const pendingByCp = {}
+  pendingUploads.forEach(record => {
+    const cpId = record.meta.cpId
+    if (!pendingByCp[cpId]) pendingByCp[cpId] = []
+    pendingByCp[cpId].push({ localId: record.localId, previewUrl: pendingPreviews.get(record.localId) })
+  })
+
   const handlePhotoUpload = async (cpId, file) => {
     if (!file) return
     userEditedRef.current = true
     setUploadingCps(prev => new Set(prev).add(cpId))
+    const isPdf = file.type === 'application/pdf'
+    let toUpload
     try {
-      const isPdf = file.type === 'application/pdf'
-      const toUpload = isPdf ? file : await compressImage(file)
+      toUpload = isPdf ? file : await compressImage(file)
+    } catch {
+      toUpload = file
+    }
+    try {
       const fd = new FormData()
       fd.append('photo', toUpload)
       if (inspIdRef.current) fd.append('inspectionId', inspIdRef.current)
       const res = await uploadPhoto(fd)
       setPhotos(prev => ({ ...prev, [cpId]: [...(prev[cpId] || []), res.data.url] }))
       setPhotoErrorCpIds(prev => { const s = new Set(prev); s.delete(String(cpId)); return s })
-    } catch {
-      toast.error('Upload failed.')
+    } catch (err) {
+      // No response at all (offline/timeout) → queue for background retry.
+      // A real server response (4xx/5xx) means retrying blindly won't help.
+      if (!err?.response && offlineOwnerId) {
+        await enqueuePendingUpload(makeLocalId(), { cpId, fileName: toUpload.name || 'photo.jpg' }, toUpload)
+        toast('Saved offline — will upload when connection is back.', { icon: '📶' })
+      } else {
+        toast.error('Upload failed.')
+      }
     } finally {
       setUploadingCps(prev => { const s = new Set(prev); s.delete(cpId); return s })
     }
@@ -232,7 +292,8 @@ export default function ChecklistForm() {
     // Validate: photoRequired checkpoints must have a photo before submitting
     const missingPhoto = checkPoints.filter(cp =>
       results[cp._id] === 'OK' &&
-      (!photos[cp._id] || photos[cp._id].length === 0)
+      (!photos[cp._id] || photos[cp._id].length === 0) &&
+      !(pendingByCp[cp._id]?.length > 0)
     )
     if (missingPhoto.length > 0) {
       setPhotoErrorCpIds(new Set(missingPhoto.map(cp => String(cp._id))))
@@ -548,17 +609,19 @@ export default function ChecklistForm() {
                         <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer transition-all ${
                           uploadingCps.has(cp._id)
                             ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-500 cursor-wait'
-                            : (photos[cp._id] || []).length > 0
+                            : (photos[cp._id]?.length || 0) + (pendingByCp[cp._id]?.length || 0) > 0
                               ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
                               : 'border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-600'
                         }`}>
                           <Camera className={`w-4 h-4 ${uploadingCps.has(cp._id) ? 'animate-pulse' : ''}`} />
-                          {uploadingCps.has(cp._id)
-                            ? 'Uploading…'
-                            : (photos[cp._id] || []).length > 0
-                              ? `${photos[cp._id].length} photo${photos[cp._id].length > 1 ? 's' : ''}`
-                              : cpResult === 'OK' ? 'Add photo (required)' : 'Add photo'
-                          }
+                          {(() => {
+                            const shotCount = photos[cp._id]?.length || 0
+                            const queuedCount = pendingByCp[cp._id]?.length || 0
+                            const total = shotCount + queuedCount
+                            if (uploadingCps.has(cp._id)) return 'Uploading…'
+                            if (total === 0) return cpResult === 'OK' ? 'Add photo (required)' : 'Add photo'
+                            return `${total} photo${total > 1 ? 's' : ''}${queuedCount ? ` (${queuedCount} pending)` : ''}`
+                          })()}
                           <input
                             type="file"
                             accept="image/*,application/pdf"
@@ -577,9 +640,9 @@ export default function ChecklistForm() {
                       )}
                     </div>
 
-                    {(photos[cp._id] || []).length > 0 && (
+                    {((photos[cp._id] || []).length > 0 || (pendingByCp[cp._id] || []).length > 0) && (
                       <div className="px-4 pb-4 flex flex-wrap gap-2">
-                        {photos[cp._id].map((url, i) => (
+                        {photos[cp._id]?.map((url, i) => (
                           <div key={i} className="relative">
                             {isPdfUrl(url) ? (
                               <a href={url} target="_blank" rel="noopener noreferrer"
@@ -610,6 +673,18 @@ export default function ChecklistForm() {
                                 ✕
                               </button>
                             )}
+                          </div>
+                        ))}
+                        {pendingByCp[cp._id]?.map((item) => (
+                          <div key={item.localId} className="relative" title="Saved on this device — will upload automatically once you're back online">
+                            <img
+                              src={item.previewUrl}
+                              alt="pending upload"
+                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border-2 border-dashed border-amber-400 opacity-70"
+                            />
+                            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold leading-none shadow-md whitespace-nowrap">
+                              queued
+                            </span>
                           </div>
                         ))}
                       </div>

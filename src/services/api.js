@@ -51,8 +51,10 @@ export const checkDuplicateInspection = (params) => api.get('/inspections/check-
 export const createInspection = (data) => api.post('/inspections', data)
 export const updateInspection = (id, data) => api.put(`/inspections/${id}`, data)
 export const submitInspection = (id, data) => api.post(`/inspections/${id}/submit`, data)
+// Longer timeout than the default — a compressed photo over a weak site
+// connection can genuinely take longer than 10s without being truly offline.
 export const uploadPhoto = (formData) =>
-  api.post('/uploads', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  api.post('/uploads', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 45000 })
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export const adminGetStats = () => api.get('/admin/stats')
