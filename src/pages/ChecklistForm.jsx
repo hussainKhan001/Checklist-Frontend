@@ -72,7 +72,7 @@ export default function ChecklistForm() {
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const hasElement = elementId && elementId !== 'undefined' && elementId !== 'null' && elementId !== ''
-    const prevParams  = { locationId, tradeId, status: 'SUBMITTED', ...(hasElement ? { elementId } : {}) }
+    const prevParams  = { locationId, tradeId, status: 'SUBMITTED', includeResults: 'true', ...(hasElement ? { elementId } : {}) }
     const dupParams   = { locationId, tradeId, date: today,         ...(hasElement ? { elementId } : {}) }
     const draftParams = { locationId, tradeId, date: today,         ...(hasElement ? { elementId } : {}) }
 

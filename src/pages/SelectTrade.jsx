@@ -48,16 +48,21 @@ export default function SelectTrade() {
         }
         setInspHistory(hist)
 
+        // One round-trip pair per trade, but ALL trades fire together instead of
+        // waiting on each other in turn — with 8 non-pending trades this was 16
+        // sequential round trips to render what's usually 1-2 cards.
         const counts = {}
         const eCounts = {}
-        for (const t of tradeList.filter(t => !t.isPending)) {
-          const [cpRes, teRes] = await Promise.all([
+        const activeTrades = tradeList.filter(t => !t.isPending)
+        await Promise.all(activeTrades.map(t =>
+          Promise.all([
             getCheckPoints(t._id, projectId),
             getTradeElements(t._id, locationId),
-          ])
-          counts[t._id] = cpRes.data.length
-          eCounts[t._id] = teRes.data.length
-        }
+          ]).then(([cpRes, teRes]) => {
+            counts[t._id] = cpRes.data.length
+            eCounts[t._id] = teRes.data.length
+          })
+        ))
         setCpCounts(counts)
         setElemCounts(eCounts)
 
