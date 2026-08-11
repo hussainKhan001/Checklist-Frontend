@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import AdminLayout from '../../components/layout/AdminLayout'
 import { adminGetInspections, adminDeleteInspection } from '../../services/api'
 import StatusBadge from '../../components/ui/StatusBadge'
+import { SkeletonRow } from '../../components/ui/Skeleton'
 import Dropdown from '../../components/ui/Dropdown'
 import DatePicker from '../../components/ui/DatePicker'
 import { useConfirm } from '../../context/ConfirmContext'
@@ -299,14 +300,18 @@ export default function Inspections() {
 
   // ── Right panel content ────────────────────────────────────────────────────
   function RightContent() {
-    if (loading) return <div className="flex items-center justify-center h-40 text-sm text-gray-400">Loading…</div>
+    if (loading) return (
+      <div className="p-3 space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
+      </div>
+    )
     if (!panelItems.length) return (
       <div className="flex flex-col items-center justify-center h-40 text-sm text-gray-400 gap-2">
         <ClipboardList className="w-8 h-8 opacity-30" />
         {selectedNode ? 'No inspections for this selection.' : 'Select a location from the left panel.'}
       </div>
     )
-    if (panelGrouped.type === 'flat') return <div>{panelGrouped.items.map(i => <InspRow key={i._id} ins={i} />)}</div>
+    if (panelGrouped.type === 'flat') return <div className="animate-fade-in">{panelGrouped.items.map(i => <InspRow key={i._id} ins={i} />)}</div>
     if (panelGrouped.type === 'byRoom') return (
       <div>
         {panelGrouped.rooms.map(room => (

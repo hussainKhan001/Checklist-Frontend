@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getElements, getLocations, getFloor, getProject } from '../services/api'
 import { ChevronRight, Layers, SkipForward } from 'lucide-react'
+import SkeletonGrid, { SkeletonBar } from '../components/ui/Skeleton'
 
 const TYPE_META = {
   WALL:             { label: 'Wall',              color: 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400' },
@@ -45,7 +46,14 @@ export default function SelectElement() {
   }, [projectId, floorId, locationId, navigate])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading…</div>
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <SkeletonBar className="h-3 w-64" />
+      <div className="space-y-2">
+        <SkeletonBar className="h-7 w-72 max-w-full" />
+        <SkeletonBar className="h-4 w-96 max-w-full" />
+      </div>
+      <SkeletonGrid variant="card" count={6} />
+    </div>
   )
 
   const goElement = (elementId) => {
@@ -58,7 +66,7 @@ export default function SelectElement() {
     .filter(g => g.items.length > 0)
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>

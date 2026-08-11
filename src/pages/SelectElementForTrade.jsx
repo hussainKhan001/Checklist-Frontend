@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getTradeElements, getProject, getFloor, getLocations, getTrade } from '../services/api'
 import { ChevronRight, Layers } from 'lucide-react'
+import SkeletonGrid, { SkeletonBar } from '../components/ui/Skeleton'
 
 const TYPE_COLOR = {
   WALL:              'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400',
@@ -50,10 +51,19 @@ export default function SelectElementForTrade() {
     navigate(`/c/${tradeId}`)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading…</div>
+  if (loading) return (
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <SkeletonBar className="h-3 w-72 max-w-full" />
+      <div className="space-y-2">
+        <SkeletonBar className="h-7 w-64" />
+        <SkeletonBar className="h-4 w-80 max-w-full" />
+      </div>
+      <SkeletonGrid variant="card" count={6} />
+    </div>
+  )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>

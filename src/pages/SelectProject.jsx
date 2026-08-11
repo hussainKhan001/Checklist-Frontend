@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import { getProjects } from '../services/api'
 import { Building2, Home, ChevronRight, Map, ZoomIn, ZoomOut, X } from 'lucide-react'
+import SkeletonGrid, { SkeletonBar } from '../components/ui/Skeleton'
 
 const TYPE_LABELS = {
   RESIDENTIAL: 'Residential',
@@ -50,7 +51,13 @@ export default function SelectProject() {
   const closeMap = () => setMapInfo(null)
 
   if (loading) return (
-    <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading projects…</div>
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+      <div className="space-y-2">
+        <SkeletonBar className="h-7 w-48" />
+        <SkeletonBar className="h-4 w-80 max-w-full" />
+      </div>
+      <SkeletonGrid variant="card" count={6} />
+    </div>
   )
 
   const grouped = projects.reduce((acc, p) => {
@@ -58,7 +65,7 @@ export default function SelectProject() {
   }, {})
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-8 animate-fade-in">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Select Project</h1>

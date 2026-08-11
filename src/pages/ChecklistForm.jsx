@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast'
 import { compressImage } from '../utils/compressImage'
 import { useOfflineUploadQueue, makeLocalId } from '../hooks/useOfflineUploadQueue'
+import { SkeletonBar, SkeletonChecklistRow } from '../components/ui/Skeleton'
 
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition'
 
@@ -330,8 +331,18 @@ export default function ChecklistForm() {
 
   // ── Loading / Submitted screens ──────────────────────────────────────────────
   if (loading) return (
-    <div className="flex items-center justify-center h-48 text-gray-400 text-sm animate-pulse">
-      Loading checklist…
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-16">
+      <div className="space-y-2">
+        <SkeletonBar className="h-3 w-72 max-w-full" />
+        <SkeletonBar className="h-7 w-56" />
+      </div>
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+        <SkeletonBar className="h-9 w-full rounded-lg" />
+        <SkeletonBar className="h-9 w-full rounded-lg" />
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <SkeletonChecklistRow key={i} />)}
+      </div>
     </div>
   )
 
@@ -363,7 +374,7 @@ export default function ChecklistForm() {
   const filledCount  = okCount + notOkCount
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-16">
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-16 animate-fade-in">
 
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1 text-xs text-gray-400 flex-wrap">

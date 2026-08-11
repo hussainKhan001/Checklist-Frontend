@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getLocations, getFloor, getProject } from '../services/api'
 import { ChevronRight } from 'lucide-react'
+import SkeletonGrid, { SkeletonBar } from '../components/ui/Skeleton'
 
 export default function SelectLocation() {
   const { projectId, floorId } = useParams()
@@ -17,7 +18,12 @@ export default function SelectLocation() {
       .finally(() => setLoading(false))
   }, [projectId, floorId])
 
-  if (loading) return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading locations…</div>
+  if (loading) return (
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <SkeletonBar className="h-7 w-64" />
+      <SkeletonGrid variant="tile" count={7} cols="grid-cols-3 sm:grid-cols-5 lg:grid-cols-7" />
+    </div>
+  )
 
   const apartments = locations.filter(l => l.type === 'APARTMENT')
   const commonAreas = locations.filter(l => l.type === 'COMMON_AREA')
@@ -25,7 +31,7 @@ export default function SelectLocation() {
   const go = (locationId) => navigate(`/p/${projectId}/f/${floorId}/l/${locationId}`)
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>

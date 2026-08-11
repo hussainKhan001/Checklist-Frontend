@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { getTrades, getCheckPoints, getProject, getFloor, getLocations, getTradeElements, getInspections } from '../services/api'
 import { ChevronRight, AlertTriangle, Clock, Layers, ClipboardCheck } from 'lucide-react'
+import SkeletonGrid, { SkeletonBar } from '../components/ui/Skeleton'
 
 const fmtDate = (d) => {
   if (!d) return ''
@@ -78,10 +79,19 @@ export default function SelectTrade() {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Loading trades…</div>
+  if (loading) return (
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <SkeletonBar className="h-3 w-56" />
+      <div className="space-y-2">
+        <SkeletonBar className="h-7 w-64" />
+        <SkeletonBar className="h-3 w-72 max-w-full" />
+      </div>
+      <SkeletonGrid variant="row" count={4} cols="grid-cols-1" />
+    </div>
+  )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fade-in">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
         <Link to="/" className="hover:text-orange-500 transition-colors font-medium">{project?.name || '…'}</Link>
